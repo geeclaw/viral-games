@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLICK EMPIRE - Build Your Dynasty</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --gold: #ffd700; --gold-dark: #b8860b; --gold-light: #fff8dc;
+            --coin: #f5a623; --coin-dark: #d4880f;
+            --purple: #9b59b6; --purple-dark: #8e44ad;
+            --green: #2ecc71; --card-bg: #0f0f23; --text: #ecf0f1; --text-dim: #95a5a6;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh; color: var(--text); overflow-x: hidden;
+        }
+        .particles { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+        .particle { position: absolute; width: 4px; height: 4px; background: var(--gold); border-radius: 50%; opacity: 0.3; animation: float-particle 15s infinite linear; }
+        @keyframes float-particle { 0% { transform: translateY(100vh) rotate(0deg); opacity: 0; } 10% { opacity: 0.3; } 90% { opacity: 0.3; } 100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; } }
+        .game-container { display: grid; grid-template-columns: 1fr 380px; gap: 20px; max-width: 1400px; margin: 0 auto; padding: 20px; min-height: 100vh; position: relative; z-index: 1; }
+        .click-section { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; }
+        .title { font-size: 2.5rem; font-weight: 800; text-align: center; background: linear-gradient(135deg, var(--gold) 0%, #fff 50%, var(--gold) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: title-glow 2s ease-in-out infinite alternate; }
+        @keyframes title-glow { from { filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5)); } to { filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8)); } }
+        .coin-display { text-align: center; }
+        .coin-count { font-size: 3.5rem; font-weight: 700; color: var(--gold); text-shadow: 0 0 20px rgba(255, 215, 0, 0.5); display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .coin-icon { width: 50px; height: 50px; background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%); border-radius: 50%; box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), inset 0 -5px 10px rgba(0,0,0,0.2); position: relative; }
+        .coin-icon::after { content: '¢'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.5rem; font-weight: 800; color: var(--gold-dark); }
+        .stats-row { display: flex; gap: 40px; font-size: 1rem; color: var(--text-dim); }
+        .stat { display: flex; align-items: center; gap: 8px; }
+        .stat-value { color: var(--coin); font-weight: 600; }
+        .click-button { width: 220px; height: 220px; border-radius: 50%; background: linear-gradient(145deg, #ffd700 0%, #ffaa00 50%, #ff8800 100%); border: 6px solid #fff; box-shadow: 0 0 0 8px rgba(255, 215, 0, 0.3), 0 0 40px rgba(255, 170, 0, 0.6), 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 -10px 30px rgba(0, 0, 0, 0.2); cursor: pointer; position: relative; transition: transform 0.1s ease, box-shadow 0.1s ease; display: flex; align-items: center; justify-content: center; font-size: 4rem; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .click-button::before { content: '👑'; font-size: 5rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+        .click-button:hover { transform: scale(1.05); box-shadow: 0 0 0 12px rgba(255, 215, 0, 0.4), 0 0 60px rgba(255, 170, 0, 0.8), 0 20px 60px rgba(0, 0, 0, 0.4), inset 0 -10px 30px rgba(0, 0, 0, 0.2); }
+        .click-button:active { transform: scale(0.95); box-shadow: 0 0 0 6px rgba(255, 215, 0, 0.3), 0 0 30px rgba(255, 170, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 5px 20px rgba(0, 0, 0, 0.3); }
+        .click-button.clicked { animation: button-pop 0.15s ease-out; }
+        @keyframes button-pop { 0% { transform: scale(1); } 50% { transform: scale(0.9); } 100% { transform: scale(1); } }
+        .float-number { position: fixed; pointer-events: none; font-size: 1.5rem; font-weight: 700; color: var(--gold); text-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 2px 2px 0 rgba(0,0,0,0.3); animation: float-up 1s ease-out forwards; z-index: 1000; }
+        @keyframes float-up { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-80px) scale(1.2); } }
+        .upgrade-panel { background: var(--card-bg); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 15px; max-height: calc(100vh - 40px); border: 1px solid rgba(255, 215, 0, 0.1); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3); }
+        .panel-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .panel-title { font-size: 1.3rem; font-weight: 700; }
+        .save-indicator { font-size: 0.8rem; color: var(--green); opacity: 0; transition: opacity 0.3s; }
+        .save-indicator.show { opacity: 1; }
+        .tabs { display: flex; gap: 5px; background: rgba(0, 0, 0, 0.3); padding: 5px; border-radius: 12px; }
+        .tab { flex: 1; padding: 10px 5px; border: none; background: transparent; color: var(--text-dim); font-family: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+        .tab:hover { color: var(--text); background: rgba(255, 255, 255, 0.05); }
+        .tab.active { background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%); color: white; box-shadow: 0 4px 15px rgba(155, 89, 182, 0.4); }
+        .upgrade-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+        .upgrade-list::-webkit-scrollbar { width: 6px; }
+        .upgrade-list::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 3px; }
+        .upgrade-list::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+        .upgrade-category { display: none; }
+        .upgrade-category.active { display: block; }
+        .upgrade-item { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 15px; margin-bottom: 10px; transition: all 0.2s; cursor: pointer; position: relative; overflow: hidden; }
+        .upgrade-item:hover:not(.locked) { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 215, 0, 0.2); transform: translateX(5px); }
+        .upgrade-item.locked { opacity: 0.5; cursor: not-allowed; }
+        .upgrade-item.affordable { border-color: rgba(46, 204, 113, 0.3); box-shadow: 0 0 15px rgba(46, 204, 113, 0.1); }
+        .upgrade-item.maxed { border-color: rgba(255, 215, 0, 0.5); background: rgba(255, 215, 0, 0.1); }
+        .upgrade-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .upgrade-name { font-weight: 600; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .upgrade-level { font-size: 0.75rem; padding: 3px 8px; background: var(--purple-dark); border-radius: 20px; color: white; }
+        .upgrade-cost { font-weight: 700; color: var(--coin); font-size: 0.95rem; margin-top: 8px; }
+        .upgrade-cost.affordable { color: var(--green); }
+        .upgrade-desc { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 8px; }
+        .upgrade-stats { display: flex; gap: 15px; font-size: 0.75rem; }
+        .upgrade-stat { color: var(--text-dim); }
+        .upgrade-stat span { color: var(--coin); font-weight: 600; }
+        .progress-bar { height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple) 0%, var(--gold) 100%); border-radius: 2px; transition: width 0.3s ease; }
+        .prestige-section { background: linear-gradient(135deg, rgba(155, 89, 182, 0.2) 0%, rgba(142, 68, 173, 0.2) 100%); border: 1px solid rgba(155, 89, 182, 0.3); border-radius: 12px; padding: 15px; margin-top: auto; }
+        .prestige-title { font-weight: 700; color: var(--purple); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .prestige-info { font-size: 0.8rem; color: var(--text-dim); margin-bottom: 10px; }
+        .prestige-btn { width: 100%; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, var(--purple) 0%, var(--purple-dark) 100%); color: white; font-family: inherit; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+        .prestige-btn:hover:not(:disabled) { transform: scale(1.02); box-shadow: 0 5px 20px rgba(155, 89, 182, 0.4); }
+        .prestige-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .prestige-multiplier { color: var(--gold); font-weight: 700; }
+        .milestone-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .milestone-overlay.show { display: flex; animation: fade-in 0.3s; }
+        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+        .milestone-content { background: linear-gradient(135deg, var(--card-bg) 0%, #16213e 100%); border: 2px solid var(--gold); border-radius: 20px; padding: 40px; text-align: center; animation: scale-in 0.5s ease-out; box-shadow: 0 0 60px rgba(255, 215, 0, 0.5); }
+        @keyframes scale-in { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .milestone-icon { font-size: 5rem; margin-bottom: 20px; }
+        .milestone-title { font-size: 2rem; font-weight: 800; color: var(--gold); margin-bottom: 10px; }
+        .milestone-desc { font-size: 1.2rem; color: var(--text-dim); }
+        .offline-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .offline-modal.show { display: flex; animation: fade-in 0.3s; }
+        .offline-content { background: linear-gradient(135deg, var(--card-bg) 0%, #16213e 100%); border: 2px solid var(--green); border-radius: 20px; padding: 40px; text-align: center; animation: scale-in 0.5s ease-out; }
+        .offline-title { font-size: 1.5rem; font-weight: 700; color: var(--green); margin-bottom: 15px; }
+        .offline-amount { font-size: 2.5rem; font-weight: 800; color: var(--gold); margin-bottom: 20px; }
+        .offline-btn { padding: 12px 30px; border: none; border-radius: 8px; background: var(--green); color: white; font-family: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; }
+        .sound-toggle { position: fixed; top: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: var(--card-bg); border: 2px solid rgba(255, 255, 255, 0.1); color: var(--text); font-size: 1.5rem; cursor: pointer; z-index: 100; transition: all 0.2s; }
+        .sound-toggle:hover { transform: scale(1.1); }
+        .sound-toggle.muted { opacity: 0.5; }
+        @media (max-width: 900px) { .game-container { grid-template-columns: 1fr; } .upgrade-panel { max-height: none; } }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    <button class="sound-toggle" id="soundToggle" title="Toggle Sound">🔊</button>
+    <div class="game-container">
+        <div class="click-section">
+            <h1 class="title">CLICK EMPIRE</h1>
+            <div class="coin-display">
+                <div class="coin-count"><div class="coin-icon"></div><span id="coinAmount">0</span></div>
+            </div>
+            <div class="stats-row">
+                <div class="stat"><span>Per Click:</span><span class="stat-value" id="perClick">1</span></div>
+                <div class="stat"><span>Per Second:</span><span class="stat-value" id="perSecond">0</span></div>
+            </div>
+            <button class="click-button" id="clickButton"></button>
+        </div>
+        <div class="upgrade-panel">
+            <div class="panel-header"><span class="panel-title">🏆 Upgrades</span><span class="save-indicator" id="saveIndicator">✓ Saved</span></div>
+            <div class="tabs">
+                <button class="tab active" data-tab="clicks">Clicks</button>
+                <button class="tab" data-tab="auto">Auto</button>
+                <button class="tab" data-tab="buildings">Buildings</button>
+            </div>
+            <div class="upgrade-list">
+                <div class="upgrade-category active" id="clicks"></div>
+                <div class="upgrade-category" id="auto"></div>
+                <div class="upgrade-category" id="buildings"></div>
+            </div>
+            <div class="prestige-section">
+                <div class="prestige-title">✨ Prestige</div>
+                <div class="prestige-info">Reset for <span class="prestige-multiplier" id="prestigeMultiplier">1.5</span>x bonus<br>Current: <span id="currentPrestige">0</span> (0%)</div>
+                <button class="prestige-btn" id="prestigeBtn" disabled>Prestige (Need 1,000,000 coins)</button>
+            </div>
+        </div>
+    </div>
+    <div class="milestone-overlay" id="milestoneOverlay">
+        <div class="milestone-content">
+            <div class="milestone-icon" id="milestoneIcon">🎉</div>
+            <div class="milestone-title" id="milestoneTitle">Milestone!</div>
+            <div class="milestone-desc" id="milestoneDesc">You've reached a new milestone!</div>
+        </div>
+    </div>
+    <div class="offline-modal" id="offlineModal">
+        <div class="offline-content">
+            <div class="offline-title">Welcome Back!</div>
+            <div class="offline-amount" id="offlineAmount">+0</div>
+            <div style="color: var(--text-dim); margin-bottom: 20px;">You earned while away!</div>
+            <button class="offline-btn" id="offlineBtn">Collect</button>
+        </div>
+    </div>
+    <script>
+        let audioCtx = null, soundEnabled = true;
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        function playClickSound() { if (!soundEnabled) return; initAudio(); const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.frequency.setValueAtTime(800, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.05); osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1); gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15); osc.start(); osc.stop(audioCtx.currentTime + 0.15); }
+        function playCoinSound() { if (!soundEnabled) return; initAudio(); const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(1200, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(2000, audioCtx.currentTime + 0.1); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2); osc.start(); osc.stop(audioCtx.currentTime + 0.2); }
+        function playUpgradeSound() { if (!soundEnabled) return; initAudio(); const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'triangle'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1); osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3); osc.start(); osc.stop(audioCtx.currentTime + 0.3); }
+        function playPrestigeSound() { if (!soundEnabled) return; initAudio(); [523, 659, 784, 1047].forEach((freq, i) => { const osc = audioCtx.createOscillator(), gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.1); gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.1); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + i * 0.1 + 0.3); osc.start(audioCtx.currentTime + i * 0.1); osc.stop(audioCtx.currentTime + i * 0.1 + 0.3); }); }
+        let gameState = { coins: 0, totalCoins: 0, clickPower: 1, clickPowerLevel: 0, autoClickers: 0, autoClickerLevel: 0, prestige: 0, lastSave: Date.now(), upgrades: {} };
+        const clickUpgrades = [
+            { id: 'click1', name: 'Stronger Fingers', icon: '💪', desc: '+1 coin per click', baseCost: 15, basePower: 1, costMult: 1.8, maxLevel: 100 },
+            { id: 'click2', name: 'Golden Touch', icon: '✨', desc: '+5 coins per click', baseCost: 100, basePower: 5, costMult: 2.2, maxLevel: 50 },
+            { id: 'click3', name: 'Diamond Hands', icon: '💎', desc: '+25 coins per click', baseCost: 1000, basePower: 25, costMult: 2.5, maxLevel: 30 },
+            { id: 'click4', name: 'Midas Power', icon: '👑', desc: '+100 coins per click', baseCost: 25000, basePower: 100, costMult: 3, maxLevel: 20 },
+            { id: 'click5', name: 'Cosmic Click', icon: '🌟', desc: '+500 coins per click', baseCost: 500000, basePower: 500, costMult: 3.5, maxLevel: 15 }
+        ];
+        const autoUpgrades = [
+            { id: 'auto1', name: 'Auto Clicker', icon: '🖱️', desc: '+1 coin per second', baseCost: 50, basePower: 1, costMult: 1.7, maxLevel: 100 },
+            { id: 'auto2', name: 'Robot Helper', icon: '🤖', desc: '+5 coins per second', baseCost: 500, basePower: 5, costMult: 2, maxLevel: 50 },
+            { id: 'auto3', name: 'AI Assistant', icon: '🧠', desc: '+25 coins per second', baseCost: 5000, basePower: 25, costMult: 2.3, maxLevel: 30 },
+            { id: 'auto4', name: 'Quantum Bot', icon: '⚛️', desc: '+100 coins per second', baseCost: 100000, basePower: 100, costMult: 2.8, maxLevel: 20 },
+            { id: 'auto5', name: 'Neural Network', icon: '🔮', desc: '+500 coins per second', baseCost: 2000000, basePower: 500, costMult: 3.2, maxLevel: 15 }
+        ];
+        const buildings = [
+            { id: 'build1', name: 'Lemonade Stand', icon: '🍋', desc: '+1 coin/sec', baseCost: 100, basePower: 1, costMult: 1.5, maxLevel: 100, unlockAt: 0 },
+            { id: 'build2', name: 'Cookie Factory', icon: '🍪', desc: '+5 coins/sec', baseCost: 500, basePower: 5, costMult: 1.6, maxLevel: 80, unlockAt: 500 },
+            { id: 'build3', name: 'Coffee Shop', icon: '☕', desc: '+20 coins/sec', baseCost: 3000, basePower: 20, costMult: 1.7, maxLevel: 60, unlockAt: 5000 },
+            { id: 'build4', name: 'Pizza Empire', icon: '🍕', desc: '+75 coins/sec', baseCost: 15000, basePower: 75, costMult: 1.8, maxLevel: 50, unlockAt: 25000 },
+            { id: 'build5', name: 'Tech Startup', icon: '💻', desc: '+250 coins/sec', baseCost: 100000, basePower: 250, costMult: 2, maxLevel: 40, unlockAt: 150000 },
+            { id: 'build6', name: 'Space Station', icon: '🚀', desc: '+1000 coins/sec', baseCost: 1000000, basePower: 1000, costMult: 2.2, maxLevel: 30, unlockAt: 2000000 },
+            { id: 'build7', name: 'Time Machine', icon: '⏰', desc: '+5000 coins/sec', baseCost: 25000000, basePower: 5000, costMult: 2.5, maxLevel: 20, unlockAt: 50000000 },
+            { id: 'build8', name: 'Alien Colony', icon: '👽', desc: '+25000 coins/sec', baseCost: 500000000, basePower: 25000, costMult: 3, maxLevel: 15, unlockAt: 1000000000 }
+        ];
+        const milestones = [
+            { coins: 1000, icon: '🌱', title: 'First Steps!', desc: 'You earned your first 1,000 coins!' },
+            { coins: 10000, icon: '🌟', title: 'Getting Popular!', desc: '10,000 coins accumulated!' },
+            { coins: 100000, icon: '🔥', title: 'On Fire!', desc: '100,000 coins - unstoppable!' },
+            { coins: 1000000, icon: '💎', title: 'Millionaire!', desc: '1,000,000 coins - you made it!' },
+            { coins: 10000000, icon: '👑', title: 'Emperor!', desc: '10,000,000 coins - true royalty!' },
+            { coins: 100000000, icon: '🌈', title: 'Legend!', desc: '100,000,000 coins - legendary!' },
+            { coins: 1000000000, icon: '🚀', title: 'Galaxy Class!', desc: '1,000,000,000 coins - sky is not the limit!' }
+        ];
+        let achievedMilestones = new Set();
+        function formatNumber(num) { if (num >= 1e15) return (num / 1e15).toFixed(2) + 'Q'; if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T'; if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B'; if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M'; if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K'; return Math.floor(num).toLocaleString(); }
+        function getUpgradeCost(upgrade, level) { return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMult, level)); }
+        function getPrestigeMultiplier() { return 1 + (gameState.prestige * 0.5); }
+        function getCoinsPerClick() { let power = gameState.clickPower; clickUpgrades.forEach(u => { const level = gameState.upgrades[u.id] || 0; power += u.basePower * level; }); return Math.floor(power * getPrestigeMultiplier()); }
+        function getCoinsPerSecond() { let power = gameState.autoClickers; buildings.forEach(b => { const level = gameState.upgrades[b.id] || 0; power += b.basePower * level; }); return Math.floor(power * getPrestigeMultiplier()); }
+        function renderUpgrades() {
+            const clicksContainer = document.getElementById('clicks');
+            clicksContainer.innerHTML = clickUpgrades.map(upgrade => { const level = gameState.upgrades[upgrade.id] || 0, cost = getUpgradeCost(upgrade, level), canAfford = gameState.coins >= cost, isMaxed = level >= upgrade.maxLevel; return `<div class="upgrade-item ${!canAfford && !isMaxed ? 'locked' : ''} ${canAfford && !isMaxed ? 'affordable' : ''} ${isMaxed ? 'maxed' : ''}" data-id="${upgrade.id}" data-type="click"><div class="upgrade-header"><span class="upgrade-name">${upgrade.icon} ${upgrade.name}</span><span class="upgrade-level">Lv. ${level}</span></div><div class="upgrade-desc">${upgrade.desc}</div><div class="upgrade-stats"><span class="upgrade-stat">+${upgrade.basePower * getPrestigeMultiplier()} per click</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${(level / upgrade.maxLevel) * 100}%"></div></div><div class="upgrade-cost ${canAfford && !isMaxed ? 'affordable' : ''}">${isMaxed ? 'MAX' : formatNumber(cost)}</div></div>`; }).join('');
+            const autoContainer = document.getElementById('auto');
+            autoContainer.innerHTML = autoUpgrades.map(upgrade => { const level = gameState.upgrades[upgrade.id] || 0, cost = getUpgradeCost(upgrade, level), canAfford = gameState.coins >= cost, isMaxed = level >= upgrade.maxLevel; return `<div class="upgrade-item ${!canAfford && !isMaxed ? 'locked' : ''} ${canAfford && !isMaxed ? 'affordable' : ''} ${isMaxed ? 'maxed' : ''}" data-id="${upgrade.id}" data-type="auto"><div class="upgrade-header"><span class="upgrade-name">${upgrade.icon} ${upgrade.name}</span><span class="upgrade-level">Lv. ${level}</span></div><div class="upgrade-desc">${upgrade.desc}</div><div class="upgrade-stats"><span class="upgrade-stat">+${upgrade.basePower * getPrestigeMultiplier()}/sec</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${(level / upgrade.maxLevel) * 100}%"></div></div><div class="upgrade-cost ${canAfford && !isMaxed ? 'affordable' : ''}">${isMaxed ? 'MAX' : formatNumber(cost)}</div></div>`; }).join('');
+            const buildsContainer = document.getElementById('buildings');
+            buildsContainer.innerHTML = buildings.map(upgrade => { const level = gameState.upgrades[upgrade.id] || 0, cost = getUpgradeCost(upgrade, level), canAfford = gameState.coins >= cost, isMaxed = level >= upgrade.maxLevel, isUnlocked = gameState.totalCoins >= upgrade.unlockAt; return isUnlocked ? `<div class="upgrade-item ${!canAfford && !isMaxed ? 'locked' : ''} ${canAfford && !isMaxed ? 'affordable' : ''} ${isMaxed ? 'maxed' : ''}" data-id="${upgrade.id}" data-type="building"><div class="upgrade-header"><span class="upgrade-name">${upgrade.icon} ${upgrade.name}</span><span class="upgrade-level">Lv. ${level}</span></div><div class="upgrade-desc">${upgrade.desc}</div><div class="upgrade-stats"><span class="upgrade-stat">+${upgrade.basePower * getPrestigeMultiplier()}/sec</span></div><div class="progress-bar"><div class="progress-fill" style="width: ${(level / upgrade.maxLevel) * 100}%"></div></div><div class="upgrade-cost ${canAfford && !isMaxed ? 'affordable' : ''}">${isMaxed ? 'MAX' : formatNumber(cost)}</div></div>` : ''; }).join('');
+        }
+        function updateDisplay() { document.getElementById('coinAmount').textContent = formatNumber(gameState.coins); document.getElementById('perClick').textContent = formatNumber(getCoinsPerClick()); document.getElementById('perSecond').textContent = formatNumber(getCoinsPerSecond()); document.getElementById('prestigeMultiplier').textContent = getPrestigeMultiplier().toFixed(1); document.getElementById('currentPrestige').textContent = gameState.prestige; const prestigeThreshold = 1000000; const canPrestige = gameState.coins >= prestigeThreshold; document.getElementById('prestigeBtn').disabled = !canPrestige; document.getElementById('prestigeBtn').textContent = canPrestige ? 'Prestige Now! (+' + getPrestigeMultiplier().toFixed(1) + 'x)' : 'Prestige (Need ' + formatNumber(prestigeThreshold) + ' coins)'; }
+        function createFloatNumber(amount, x, y) { const el = document.createElement('div'); el.className = 'float-number'; el.textContent = '+' + formatNumber(amount); el.style.left = x + 'px'; el.style.top = y + 'px'; document.body.appendChild(el); setTimeout(() => el.remove(), 1000); }
+        function showMilestone(icon, title, desc) { document.getElementById('milestoneIcon').textContent = icon; document.getElementById('milestoneTitle').textContent = title; document.getElementById('milestoneDesc').textContent = desc; document.getElementById('milestoneOverlay').classList.add('show'); setTimeout(() => document.getElementById('milestoneOverlay').classList.remove('show'), 3000); }
+        function checkMilestones() { milestones.forEach(m => { if (gameState.totalCoins >= m.coins && !achievedMilestones.has(m.coins)) { achievedMilestones.add(m.coins); showMilestone(m.icon, m.title, m.desc); } }); }
+        function saveGame() { localStorage.setItem('clickEmpireSave', JSON.stringify(gameState)); localStorage.setItem('clickEmpireMilestones', JSON.stringify([...achievedMilestones])); const indicator = document.getElementById('saveIndicator'); indicator.classList.add('show'); setTimeout(() => indicator.classList.remove('show'), 2000); }
+        function loadGame() { const saved = localStorage.getItem('clickEmpireSave'); if (saved) { gameState = JSON.parse(saved); const savedMilestones = localStorage.getItem('clickEmpireMilestones'); if (savedMilestones) achievedMilestones = new Set(JSON.parse(savedMilestones)); return true; } return false; }
+        function handleOfflineEarnings() { const now = Date.now(); const elapsed = (now - gameState.lastSave) / 1000; if (elapsed > 60) { const earnings = getCoinsPerSecond() * elapsed; if (earnings > 0) { gameState.coins += earnings; gameState.totalCoins += earnings; document.getElementById('offlineAmount').textContent = '+' + formatNumber(earnings); document.getElementById('offlineModal').classList.add('show'); } } }
+        document.getElementById('offlineBtn').addEventListener('click', () => { document.getElementById('offlineModal').classList.remove('show'); saveGame(); });
+        document.getElementById('clickButton').addEventListener('click', (e) => { const earned = getCoinsPerClick(); gameState.coins += earned; gameState.totalCoins += earned; playClickSound(); createFloatNumber(earned, e.clientX - 20, e.clientY - 20); updateDisplay(); renderUpgrades(); checkMilestones(); });
+        document.querySelectorAll('.tab').forEach(tab => { tab.addEventListener('click', () => { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.upgrade-category').forEach(c => c.classList.remove('active')); tab.classList.add('active'); document.getElementById(tab.dataset.tab).classList.add('active'); }); });
+        document.querySelector('.upgrade-list').addEventListener('click', (e) => { const item = e.target.closest('.upgrade-item'); if (!item || item.classList.contains('locked')) return; const id = item.dataset.id; const type = item.dataset.type; let upgrade; if (type === 'click') upgrade = clickUpgrades.find(u => u.id === id); else if (type === 'auto') upgrade = autoUpgrades.find(u => u.id === id); else upgrade = buildings.find(b => b.id === id); const level = gameState.upgrades[id] || 0; if (level >= upgrade.maxLevel) return; const cost = getUpgradeCost(upgrade, level); if (gameState.coins >= cost) { gameState.coins -= cost; gameState.upgrades[id] = level + 1; playUpgradeSound(); updateDisplay(); renderUpgrades(); saveGame(); } });
+        document.getElementById('prestigeBtn').addEventListener('click', () => { if (gameState.coins >= 1000000) { gameState.prestige += 1; gameState.coins = 0; gameState.upgrades = {}; playPrestigeSound(); showMilestone('✨', 'Prestige!', 'Your empire grows stronger!'); updateDisplay(); renderUpgrades(); saveGame(); } });
+        document.getElementById('soundToggle').addEventListener('click', () => { soundEnabled = !soundEnabled; document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇'; document.getElementById('soundToggle').classList.toggle('muted', !soundEnabled); });
+        function initParticles() { for (let i = 0; i < 20; i++) { const p = document.createElement('div'); p.className = 'particle'; p.style.left = Math.random() * 100 + '%'; p.style.animationDelay = Math.random() * 15 + 's'; p.style.animationDuration = (10 + Math.random() * 10) + 's'; document.getElementById('particles').appendChild(p); } }
+        setInterval(() => { const cps = getCoinsPerSecond(); if (cps > 0) { gameState.coins += cps / 10; gameState.totalCoins += cps / 10; updateDisplay(); renderUpgrades(); checkMilestones(); } }, 100);
+        setInterval(saveGame, 30000);
+        const loaded = loadGame(); initParticles(); updateDisplay(); renderUpgrades(); if (loaded) handleOfflineEarnings();
+    </script>
+</body>
+</html>

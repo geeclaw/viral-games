@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BLOCK BLAST</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0d0d1a;
+            --bg-card: #1a1a2e;
+            --primary: #ff6b35;
+            --secondary: #f7c948;
+            --accent: #00d4aa;
+            --text: #ffffff;
+            --text-dim: #8888aa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            touch-action: none;
+        }
+        
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0 10px;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 107, 53, 0.3);
+        }
+        
+        .score-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        
+        .score-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .score {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .best-score {
+            font-size: 0.85rem;
+            color: var(--accent);
+        }
+        
+        .combo-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 800;
+            color: var(--secondary);
+            text-shadow: 0 0 20px var(--secondary);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .combo-display.show {
+            animation: comboPopup 0.8s ease-out forwards;
+        }
+        
+        @keyframes comboPopup {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5) translateY(-50px); }
+        }
+        
+        .grid-wrapper {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        
+        .grid-wrapper.shake {
+            animation: shake 0.4s ease-out;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px) rotate(-1deg); }
+            40% { transform: translateX(10px) rotate(1deg); }
+            60% { transform: translateX(-5px) rotate(-0.5deg); }
+            80% { transform: translateX(5px) rotate(0.5deg); }
+        }
+        
+        #gameCanvas {
+            display: block;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .blocks-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 20px;
+            min-height: 120px;
+            width: 100%;
+        }
+        
+        .block-preview {
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        
+        .block-preview.dragging {
+            opacity: 0.3;
+            transform: scale(0.9);
+        }
+        
+        .block-preview.used {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .block-preview canvas {
+            max-width: 80px;
+            max-height: 80px;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal-overlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .modal {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            transform: scale(0.8);
+            transition: transform 0.3s ease;
+            max-width: 350px;
+            width: 90%;
+        }
+        
+        .modal-overlay.show .modal {
+            transform: scale(1);
+        }
+        
+        .modal h2 {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+        
+        .modal .final-score {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--text);
+            margin: 20px 0;
+        }
+        
+        .modal .new-best {
+            color: var(--accent);
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .modal button {
+            background: linear-gradient(135deg, var(--primary), #ff8c5a);
+            border: none;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 16px 40px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.4);
+        }
+        
+        .modal button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 107, 53, 0.5);
+        }
+        
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-card);
+            border: none;
+            color: var(--text);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 50;
+        }
+        
+        @media (max-width: 400px) {
+            .title { font-size: 1.8rem; }
+            .score { font-size: 1.4rem; }
+            .blocks-container { gap: 10px; }
+            .block-preview { width: 70px; height: 70px; }
+        }
+    </style>
+</head>
+<body>
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="header">
+            <div class="title">BLOCK BLAST</div>
+            <div class="score-container">
+                <div class="score-label">Score</div>
+                <div class="score" id="scoreDisplay">0</div>
+                <div class="best-score">Best: <span id="bestScoreDisplay">0</span></div>
+            </div>
+        </div>
+        
+        <div class="grid-wrapper" id="gridWrapper">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        
+        <div class="blocks-container" id="blocksContainer"></div>
+    </div>
+    
+    <div class="combo-display" id="comboDisplay">COMBO x2</div>
+    
+    <div class="modal-overlay" id="gameOverModal">
+        <div class="modal">
+            <h2>GAME OVER</h2>
+            <div class="final-score" id="finalScore">0</div>
+            <div class="new-best" id="newBest" style="display: none;">🎉 NEW BEST! 🎉</div>
+            <button id="playAgainBtn">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // ============ AUDIO SYSTEM ============
+        class AudioManager {
+            constructor() {
+                this.enabled = true;
+                this.ctx = null;
+            }
+            
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            
+            playTone(freq, duration, type = 'sine', volume = 0.3) {
+                if (!this.enabled || !this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+            
+            playPlace() {
+                this.playTone(440, 0.1, 'sine', 0.2);
+                setTimeout(() => this.playTone(550, 0.1, 'sine', 0.15), 50);
+            }
+            
+            playClear() {
+                this.playTone(523, 0.15, 'sine', 0.25);
+                setTimeout(() => this.playTone(659, 0.15, 'sine', 0.25), 80);
+                setTimeout(() => this.playTone(784, 0.2, 'sine', 0.3), 160);
+            }
+            
+            playCombo(level) {
+                const baseFreq = 400 + level * 100;
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => this.playTone(baseFreq + i * 200, 0.15, 'sine', 0.25), i * 60);
+                }
+            }
+            
+            playGameOver() {
+                this.playTone(400, 0.3, 'sawtooth', 0.2);
+                setTimeout(() => this.playTone(300, 0.3, 'sawtooth', 0.2), 200);
+                setTimeout(() => this.playTone(200, 0.5, 'sawtooth', 0.15), 400);
+            }
+            
+            toggle() {
+                this.enabled = !this.enabled;
+                return this.enabled;
+            }
+        }
+        
+        const audio = new AudioManager();
+        
+        // ============ GAME CONFIG ============
+        const GRID_SIZE = 10;
+        const CELL_SIZE = 36;
+        const GAP = 2;
+        const COLORS = [
+            '#ff6b35', '#f7c948', '#00d4aa', '#5e60ce', 
+            '#ff006e', '#3a86ff', '#8338ec', '#fb5607'
+        ];
+        
+        // Tetromino shapes
+        const SHAPES = [
+            [[1]], // Single
+            [[1, 1]], // 2-line horizontal
+            [[1], [1]], // 2-line vertical
+            [[1, 1, 1]], // 3-line horizontal
+            [[1], [1], [1]], // 3-line vertical
+            [[1, 1], [1, 1]], // Square (2x2)
+            [[1, 1, 1], [0, 1, 0]], // T-shape
+            [[1, 1, 1], [1, 0, 0]], // L-shape
+            [[1, 1, 1], [0, 0, 1]], // J-shape
+            [[1, 1, 0], [0, 1, 1]], // Z-shape
+            [[0, 1, 1], [1, 1, 0]], // S-shape
+            [[1, 1], [1, 0]], // Small L
+            [[1, 1], [0, 1]], // Small L mirrored
+            [[1, 0], [1, 1]], // Small L rotated
+            [[0, 1], [1, 1]], // Small L rotated
+            [[1, 1, 1, 1]], // 4-line horizontal
+            [[1], [1], [1], [1]], // 4-line vertical
+            [[1, 1, 1], [0, 1, 1]], // Large Z
+            [[1, 1, 1], [1, 1, 0]], // Large L
+        ];
+        
+        // ============ GAME STATE ============
+        let canvas, ctx;
+        let grid = [];
+        let score = 0;
+        let bestScore = parseInt(localStorage.getItem('blockBlastBest')) || 0;
+        let combo = 0;
+        let availableBlocks = [];
+        let draggingBlock = null;
+        let dragOffset = { x: 0, y: 0 };
+        let particles = [];
+        let animatingCells = [];
+        let screenShake = 0;
+        
+        // ============ INITIALIZATION ============
+        function init() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            
+            const gridSize = GRID_SIZE * (CELL_SIZE + GAP) + GAP;
+            canvas.width = gridSize;
+            canvas.height = gridSize;
+            
+            canvas.addEventListener('mousedown', onPointerDown);
+            canvas.addEventListener('mousemove', onPointerMove);
+            canvas.addEventListener('mouseup', onPointerUp);
+            canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+            canvas.addEventListener('touchend', onTouchEnd);
+            
+            document.getElementById('soundToggle').addEventListener('click', () => {
+                audio.init();
+                const enabled = audio.toggle();
+                document.getElementById('soundToggle').textContent = enabled ? '🔊' : '🔇';
+            });
+            
+            document.getElementById('playAgainBtn').addEventListener('click', () => {
+                document.getElementById('gameOverModal').classList.remove('show');
+                startGame();
+            });
+            
+            document.getElementById('bestScoreDisplay').textContent = bestScore;
+            
+            startGame();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function startGame() {
+            grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
+            score = 0;
+            combo = 0;
+            particles = [];
+            animatingCells = [];
+            updateScoreDisplay();
+            generateNewBlocks();
+        }
+        
+        function generateNewBlocks() {
+            availableBlocks = [];
+            const container = document.getElementById('blocksContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 3; i++) {
+                const shape = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+                const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                const block = { shape, color, index: i, used: false };
+                availableBlocks.push(block);
+                
+                const preview = document.createElement('div');
+                preview.className = 'block-preview';
+                preview.dataset.index = i;
+                
+                const previewCanvas = document.createElement('canvas');
+                const previewSize = 80;
+                previewCanvas.width = previewSize.height = previewSize;
+                previewCanvas;
+                
+                const pctx = previewCanvas.getContext('2d');
+                drawBlock(pctx, shape, color, previewSize, previewSize, 4);
+                
+                preview.appendChild(previewCanvas);
+                preview.addEventListener('mousedown', (e) => startDrag(e, i));
+                preview.addEventListener('touchstart', (e) => startDrag(e, i), { passive: false });
+                container.appendChild(preview);
+            }
+            
+            if (!canPlaceAnyBlock()) {
+                gameOver();
+            }
+        }
+        
+        function drawBlock(context, shape, color, width, height, padding = 0) {
+            const cellW = (width - padding * 2) / shape[0].length;
+            const cellH = (height - padding * 2) / shape.length;
+            const size = Math.min(cellW, cellH) * 0.85;
+            
+            context.clearRect(0, 0, width, height);
+            
+            const offsetX = (width - shape[0].length * cellW) / 2;
+            const offsetY = (height - shape.length * cellH) / 2;
+            
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c]) {
+                        const x = offsetX + c * cellW + (cellW - size) / 2;
+                        const y = offsetY + r * cellH + (cellH - size) / 2;
+                        
+                        // Main block
+                        context.fillStyle = color;
+                        roundRect(context, x, y, size, size, size * 0.15);
+                        context.fill();
+                        
+                        // Highlight
+                        context.fillStyle = 'rgba(255,255,255,0.3)';
+                        roundRect(context, x + 2, y + 2, size * 0.4, size * 0.2, 2);
+                        context.fill();
+                        
+                        // Shadow
+                        context.fillStyle = 'rgba(0,0,0,0.2)';
+                        roundRect(context, x + size * 0.6, y + size * 0.3, size * 0.35, size * 0.15, 2);
+                        context.fill();
+                    }
+                }
+            }
+        }
+        
+        function roundRect(ctx, x, y, w, h, r) {
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            ctx.lineTo(x + r, y + h);
+            ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+            ctx.lineTo(x, y + r);
+            ctx.quadraticCurveTo(x, y, x + r, y);
+            ctx.closePath();
+        }
+        
+        // ============ INPUT HANDLING ============
+        function getCanvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+        
+        function startDrag(e, blockIndex) {
+            e.preventDefault();
+            audio.init();
+            
+            const block = availableBlocks[blockIndex];
+            if (block.used) return;
+            
+            const pos = e.touches ? 
+                { x: e.touches[0].clientX, y: e.touches[0].clientY } :
+                { x: e.clientX, y: e.clientY };
+            
+            draggingBlock = { ...block, originalIndex: blockIndex };
+            dragOffset = { x: 0, y: 0 };
+            
+            document.querySelectorAll('.block-preview')[blockIndex].classList.add('dragging');
+        }
+        
+        function onPointerDown(e) {
+            const pos = getCanvasPos(e);
+            const blockIndex = getBlockAtPosition(pos.x, pos.y);
+            if (blockIndex !== -1) {
+                startDrag(e, blockIndex);
+            }
+        }
+        
+        function onPointerMove(e) {
+            if (!draggingBlock) return;
+            const pos = getCanvasPos(e);
+            dragOffset = { x: pos.x, y: pos.y };
+        }
+        
+        function onPointerUp(e) {
+            if (!draggingBlock) return;
+            attemptPlace();
+        }
+        
+        function onTouchStart(e) {
+            if (e.touches.length > 1) return;
+            const touch = e.touches[0];
+            const pos = getCanvasPos(touch);
+            const blockIndex = getBlockAtPosition(touch.clientX, touch.clientY);
+            if (blockIndex !== -1) {
+                e.preventDefault();
+                startDrag(e, blockIndex);
+            }
+        }
+        
+        function onTouchMove(e) {
+            if (!draggingBlock) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            dragOffset = {
+                x: (touch.clientX - rect.left) * scaleX,
+                y: (touch.clientY - rect.top) * scaleY
+            };
+        }
+        
+        function onTouchEnd(e) {
+            if (!draggingBlock) return;
+            attemptPlace();
+        }
+        
+        function getBlockAtPosition(x, y) {
+            const container = document.getElementById('blocksContainer');
+            const rects = container.querySelectorAll('.block-preview');
+            for (let i = 0; i < rects.length; i++) {
+                const r = rects[i].getBoundingClientRect();
+                if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        
+        function attemptPlace() {
+            if (!draggingBlock) return;
+            
+            const cellSize = CELL_SIZE + GAP;
+            const gridX = Math.floor((dragOffset.x - GAP) / cellSize);
+            const gridY = Math.floor((dragOffset.y - GAP) / cellSize);
+            
+            if (canPlace(draggingBlock.shape, gridX, gridY)) {
+                placeBlock(draggingBlock, gridX, gridY);
+            }
+            
+            document.querySelectorAll('.block-preview')[draggingBlock.originalIndex].classList.remove('dragging');
+            draggingBlock = null;
+        }
+        
+        // ============ GAME LOGIC ============
+        function canPlace(shape, gridX, gridY) {
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c]) {
+                        const gx = gridX + c;
+                        const gy = gridY + r;
+                        if (gx < 0 || gx >= GRID_SIZE || gy < 0 || gy >= GRID_SIZE) return false;
+                        if (grid[gy][gx] !== null) return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function canPlaceAnyBlock() {
+            for (const block of availableBlocks) {
+                if (block.used) continue;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        if (canPlace(block.shape, x, y)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function placeBlock(block, gridX, gridY) {
+            const shape = block.shape;
+            let placed = false;
+            
+            for (let r = 0; r < shape.length; r++) {
+                for (let c = 0; c < shape[r].length; c++) {
+                    if (shape[r][c]) {
+                        grid[gridY + r][gridX + c] = {
+                            color: block.color,
+                            animScale: 0
+                        };
+                        animatingCells.push({ x: gridX + c, y: gridY + r, scale: 0 });
+                    }
+                }
+            }
+            
+            audio.playPlace();
+            
+            // Mark block as used
+            availableBlocks[block.originalIndex].used = true;
+            document.querySelectorAll('.block-preview')[block.originalIndex].classList.add('used');
+            
+            // Check for clears
+            checkAndClearLines();
+            
+            // Check if all blocks used
+            if (availableBlocks.every(b => b.used)) {
+                setTimeout(generateNewBlocks, 300);
+            } else if (!canPlaceAnyBlock()) {
+                setTimeout(gameOver, 500);
+            }
+        }
+        
+        function checkAndClearLines() {
+            const rowsToClear = [];
+            const colsToClear = [];
+            
+            // Check rows
+            for (let y = 0; y < GRID_SIZE; y++) {
+                if (grid[y].every(cell => cell !== null)) {
+                    rowsToClear.push(y);
+                }
+            }
+            
+            // Check columns
+            for (let x = 0; x < GRID_SIZE; x++) {
+                let full = true;
+                for (let y = 0; y < GRID_SIZE; y++) {
+                    if (grid[y][x] === null) {
+                        full = false;
+                        break;
+                    }
+                }
+                if (full) colsToClear.push(x);
+            }
+            
+            if (rowsToClear.length > 0 || colsToClear.length > 0) {
+                combo++;
+                const clearedCount = rowsToClear.length + colsToClear.length;
+                
+                // Calculate score
+                const basePoints = (rowsToClear.length + colsToClear.length) * 10;
+                const comboMultiplier = Math.max(1, combo);
+                const bonus = (clearedCount - 1) * 20;
+                const points = (basePoints + bonus) * comboMultiplier;
+                
+                score += points;
+                updateScoreDisplay();
+                
+                // Visual feedback
+                if (combo > 1) {
+                    showCombo(combo);
+                    audio.playCombo(combo);
+                } else {
+                    audio.playClear();
+                }
+                
+                if (combo >= 2) {
+                    triggerScreenShake();
+                }
+                
+                // Create particles and clear
+                const cellsToClear = new Set();
+                rowsToClear.forEach(y => {
+                    for (let x = 0; x < GRID_SIZE; x++) {
+                        cellsToClear.add(`${x},${y}`);
+                        if (grid[y][x]) {
+                            createParticles(x, y, grid[y][x].color);
+                        }
+                    }
+                });
+                colsToClear.forEach(x => {
+                    for (let y = 0; y < GRID_SIZE; y++) {
+                        cellsToClear.add(`${x},${y}`);
+                        if (grid[y][x]) {
+                            createParticles(x, y, grid[y][x].color);
+                        }
+                    }
+                });
+                
+                // Clear after animation
+                setTimeout(() => {
+                    cellsToClear.forEach(key => {
+                        const [x, y] = key.split(',').map(Number);
+                        grid[y][x] = null;
+                    });
+                    
+                    // Reset combo after a delay
+                    setTimeout(() => { combo = 0; }, 1000);
+                }, 200);
+            } else {
+                combo = 0;
+            }
+        }
+        
+        function createParticles(gridX, gridY, color) {
+            const cellSize = CELL_SIZE + GAP;
+            const x = GAP + gridX * cellSize + cellSize / 2;
+            const y = GAP + gridY * cellSize + cellSize / 2;
+            
+            for (let i = 0; i < 12; i++) {
+                const angle = (Math.PI * 2 / 12) * i + Math.random() * 0.5;
+                const speed = 2 + Math.random() * 4;
+                particles.push({
+                    x, y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    color,
+                    life: 1,
+                    size: 4 + Math.random() * 4
+                });
+            }
+        }
+        
+        function showCombo(level) {
+            const display = document.getElementById('comboDisplay');
+            display.textContent = `COMBO x${level}`;
+            display.classList.remove('show');
+            void display.offsetWidth;
+            display.classList.add('show');
+        }
+        
+        function triggerScreenShake() {
+            const wrapper = document.getElementById('gridWrapper');
+            wrapper.classList.remove('shake');
+            void wrapper.offsetWidth;
+            wrapper.classList.add('shake');
+        }
+        
+        function updateScoreDisplay() {
+            document.getElementById('scoreDisplay').textContent = score;
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('blockBlastBest', bestScore);
+                document.getElementById('bestScoreDisplay').textContent = bestScore;
+            }
+        }
+        
+        function gameOver() {
+            audio.playGameOver();
+            
+            document.getElementById('finalScore').textContent = score;
+            document.getElementById('newBest').style.display = score >= bestScore ? 'block' : 'none';
+            document.getElementById('gameOverModal').classList.add('show');
+        }
+        
+        // ============ RENDERING ============
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function update() {
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life -= 0.03;
+                return p.life > 0;
+            });
+            
+            // Update animating cells
+            animatingCells = animatingCells.filter(c => {
+                c.scale = Math.min(1, c.scale + 0.15);
+                return c.scale < 1;
+            });
+            
+            // Update placed cells in grid
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    if (grid[y][x] && grid[y][x].animScale !== undefined) {
+                        grid[y][x].animScale = Math.min(1, (grid[y][x].animScale || 0) + 0.15);
+                    }
+                }
+            }
+        }
+        
+        function render() {
+            ctx.fillStyle = '#12121f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid cells
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const cellX = GAP + x * (CELL_SIZE + GAP);
+                    const cellY = GAP + y * (CELL_SIZE + GAP);
+                    
+                    // Empty cell background
+                    ctx.fillStyle = '#1a1a2e';
+                    roundRect(ctx, cellX, cellY, CELL_SIZE, CELL_SIZE, 6);
+                    ctx.fill();
+                    
+                    // Filled cell
+                    const cell = grid[y][x];
+                    if (cell) {
+                        const scale = cell.animScale !== undefined ? cell.animScale : 1;
+                        const offset = CELL_SIZE * (1 - scale) / 2;
+                        
+                        if (scale > 0) {
+                            ctx.save();
+                            ctx.translate(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2);
+                            ctx.scale(scale, scale);
+                            ctx.translate(-CELL_SIZE/2, -CELL_SIZE/2);
+                            
+                            // Block color
+                            ctx.fillStyle = cell.color;
+                            roundRect(ctx, 0, 0, CELL_SIZE, CELL_SIZE, 6);
+                            ctx.fill();
+                            
+                            // Highlight
+                            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                            roundRect(ctx, 3, 3, CELL_SIZE * 0.5, CELL_SIZE * 0.2, 3);
+                            ctx.fill();
+                            
+                            // Shadow
+                            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                            roundRect(ctx, CELL_SIZE * 0.5, CELL_SIZE * 0.4, CELL_SIZE * 0.45, CELL_SIZE * 0.15, 2);
+                            ctx.fill();
+                            
+                            ctx.restore();
+                        }
+                    }
+                }
+            }
+            
+            // Draw dragging preview on grid
+            if (draggingBlock) {
+                const cellSize = CELL_SIZE + GAP;
+                const gridX = Math.floor((dragOffset.x - GAP) / cellSize);
+                const gridY = Math.floor((dragOffset.y - GAP) / cellSize);
+                
+                ctx.globalAlpha = 0.5;
+                const shape = draggingBlock.shape;
+                for (let r = 0; r < shape.length; r++) {
+                    for (let c = 0; c < shape[r].length; c++) {
+                        if (shape[r][c]) {
+                            const x = GAP + (gridX + c) * cellSize;
+                            const y = GAP + (gridY + r) * cellSize;
+                            ctx.fillStyle = draggingBlock.color;
+                            roundRect(ctx, x, y, CELL_SIZE, CELL_SIZE, 6);
+                            ctx.fill();
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1;
+            }
+            
+            // Draw particles
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1;
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>

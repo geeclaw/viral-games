@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CUBE RUSH</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #0a0a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            font-family: 'Orbitron', monospace;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 500px;
+            max-height: 800px;
+            background: linear-gradient(180deg, #1a1a3e 0%, #0d0d1f 100%);
+            overflow: hidden;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 32px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+            z-index: 10;
+        }
+        
+        #highScore {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: 400;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            z-index: 10;
+        }
+        
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 10, 26, 0.95);
+            z-index: 20;
+            pointer-events: auto;
+        }
+        
+        #gameOverScreen {
+            display: none;
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00ffff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+            animation: titlePulse 2s ease-in-out infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes titlePulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.05); filter: brightness(1.3); }
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #888;
+            margin-bottom: 40px;
+            letter-spacing: 4px;
+        }
+        
+        .tapText {
+            font-size: 18px;
+            color: #00ffff;
+            animation: blink 1.5s ease-in-out infinite;
+            margin-top: 20px;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        #finalScore {
+            font-size: 64px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 30px #00ffff;
+            margin: 20px 0;
+        }
+        
+        #newHighScore {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffff00;
+            text-shadow: 0 0 20px #ffff00;
+            animation: highScoreCelebrate 0.5s ease-in-out infinite alternate;
+            display: none;
+        }
+        
+        @keyframes highScoreCelebrate {
+            from { transform: scale(1) rotate(-2deg); }
+            to { transform: scale(1.1) rotate(2deg); }
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            font-size: 12px;
+            color: #444;
+            pointer-events: none;
+        }
+        
+        #flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .powerup-indicator {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        
+        .powerup-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+        }
+        
+        .powerup-icon.active {
+            opacity: 1;
+            transform: scale(1.2);
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        .powerup-icon.shield { background: #00ff88; color: #004422; }
+        .powerup-icon.multiplier { background: #ffaa00; color: #442200; }
+        .powerup-icon.slow { background: #00aaff; color: #002244; }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="game"></canvas>
+        <div id="flash"></div>
+        
+        <div id="ui">
+            <div id="score">0</div>
+            <div id="highScore">BEST: 0</div>
+            <div class="powerup-indicator">
+                <div class="powerup-icon shield" id="shieldIcon">🛡️</div>
+                <div class="powerup-icon multiplier" id="multiplierIcon">×2</div>
+                <div class="powerup-icon slow" id="slowIcon">🐢</div>
+            </div>
+        </div>
+        
+        <div id="startScreen">
+            <div class="title">CUBE RUSH</div>
+            <div class="subtitle">TAP TO START</div>
+            <div class="tapText">◀ TAP LEFT / RIGHT ▶</div>
+            <div class="controls">
+                <span>A / ←</span>
+                <span>D / →</span>
+            </div>
+        </div>
+        
+        <div id="gameOverScreen">
+            <div class="title" style="font-size: 36px;">GAME OVER</div>
+            <div id="newHighScore">★ NEW HIGH SCORE ★</div>
+            <div id="finalScore">0</div>
+            <div class="tapText">TAP TO RESTART</div>
+        </div>
+    </div>
+
+    <script>
+        // ============== AUDIO ENGINE ==============
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+                this.initialized = false;
+            }
+            
+            init() {
+                if (this.initialized) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.initialized = true;
+            }
+            
+            playTone(freq, duration, type = 'square', volume = 0.15) {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+            
+            playCollect() {
+                this.playTone(880, 0.1, 'sine', 0.2);
+                setTimeout(() => this.playTone(1100, 0.1, 'sine', 0.2), 50);
+            }
+            
+            playSwitch() {
+                this.playTone(440, 0.08, 'triangle', 0.1);
+            }
+            
+            playDeath() {
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => this.playTone(200 - i * 30, 0.15, 'sawtooth', 0.15), i * 80);
+                }
+            }
+            
+            playPowerup() {
+                this.playTone(523, 0.1, 'sine', 0.2);
+                setTimeout(() => this.playTone(659, 0.1, 'sine', 0.2), 80);
+                setTimeout(() => this.playTone(784, 0.15, 'sine', 0.2), 160);
+            }
+            
+            playHighScore() {
+                const notes = [523, 659, 784, 1047];
+                notes.forEach((n, i) => {
+                    setTimeout(() => this.playTone(n, 0.2, 'sine', 0.25), i * 150);
+                });
+            }
+        }
+        
+        const audio = new AudioEngine();
+        
+        // ============== GAME CONFIG ==============
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        let W, H;
+        function resize() {
+            const container = document.getElementById('gameContainer');
+            W = canvas.width = container.clientWidth;
+            H = canvas.height = container.clientHeight;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+        
+        // Game state
+        let gameState = 'start'; // start, playing, gameOver
+        let score = 0;
+        let highScore = parseInt(localStorage.getItem('cubeRushHighScore')) || 0;
+        let distance = 0;
+        let speed = 5;
+        let baseSpeed = 5;
+        let maxSpeed = 18;
+        let lane = 1; // 0, 1, 2
+        let targetLane = 1;
+        let cubeTrail = [];
+        let obstacles = [];
+        let collectibles = [];
+        let particles = [];
+        
+        // Powerups
+        let hasShield = false;
+        let hasMultiplier = false;
+        let multiplierValue = 1;
+        let hasSlow = false;
+        let slowTimer = 0;
+        let powerupTimers = { shield: 0, multiplier: 0 };
+        
+        // Effects
+        let shakeAmount = 0;
+        let flashOpacity = 0;
+        let gameOverDelay = 0;
+        
+        // Lane config
+        const laneCount = 3;
+        let laneWidth;
+        
+        function getLaneX(l) {
+            return (l + 0.5) * laneWidth;
+        }
+        
+        // Colors
+        const colors = {
+            cube: '#00ffff',
+            cubeGlow: '#00ffff',
+            trail: ['#ff00ff', '#00ffff', '#ffff00'],
+            obstacle: '#ff3366',
+            spike: '#ff6644',
+            block: '#ff3366',
+            gap: '#0a0a1a',
+            collectShield: '#00ff88',
+            collectMultiplier: '#ffaa00',
+            collectSlow: '#00aaff',
+            ground: '#1a1a3e',
+            grid: '#2a2a5e'
+        };
+        
+        // ============== INPUT ==============
+        function handleInput(side) {
+            audio.init();
+            if (gameState === 'start') {
+                startGame();
+            } else if (gameState === 'playing') {
+                if (side === 'left') {
+                    targetLane = Math.max(0, targetLane - 1);
+                } else {
+                    targetLane = Math.min(laneCount - 1, targetLane + 1);
+                }
+                if (targetLane !== lane) {
+                    audio.playSwitch();
+                }
+            } else if (gameState === 'gameOver' && gameOverDelay <= 0) {
+                startGame();
+            }
+        }
+        
+        // Touch/Click
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            handleInput(x < W / 2 ? 'left' : 'right');
+        });
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const x = e.clientX - canvas.getBoundingClientRect().left;
+            handleInput(x < W / 2 ? 'left' : 'right');
+        });
+        
+        // Keyboard
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
+                handleInput('left');
+            } else if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
+                handleInput('right');
+            }
+        });
+        
+        // ============== GAME LOGIC ==============
+        function startGame() {
+            gameState = 'playing';
+            score = 0;
+            distance = 0;
+            speed = baseSpeed;
+            lane = 1;
+            targetLane = 1;
+            cubeTrail = [];
+            obstacles = [];
+            collectibles = [];
+            particles = [];
+            hasShield = false;
+            hasMultiplier = false;
+            multiplierValue = 1;
+            hasSlow = false;
+            slowTimer = 0;
+            powerupTimers = { shield: 0, multiplier: 0 };
+            shakeAmount = 0;
+            gameOverDelay = 0;
+            
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameOverScreen').style.display = 'none';
+            updatePowerupUI();
+        }
+        
+        function gameOver() {
+            gameState = 'gameOver';
+            gameOverDelay = 1.5;
+            audio.playDeath();
+            
+            // Screen shake
+            shakeAmount = 20;
+            
+            // Death particles
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: getLaneX(lane),
+                    y: H * 0.4,
+                    vx: (Math.random() - 0.5) * 15,
+                    vy: (Math.random() - 0.5) * 15 - 5,
+                    size: Math.random() * 15 + 5,
+                    color: colors.cube,
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.02
+                });
+            }
+            
+            // Check high score
+            const isNewHigh = score > highScore;
+            if (isNewHigh) {
+                highScore = score;
+                localStorage.setItem('cubeRushHighScore', highScore);
+                audio.playHighScore();
+            }
+            
+            setTimeout(() => {
+                document.getElementById('gameOverScreen').style.display = 'flex';
+                document.getElementById('finalScore').textContent = score;
+                document.getElementById('newHighScore').style.display = isNewHigh ? 'block' : 'none';
+            }, 800);
+        }
+        
+        function spawnObstacle() {
+            const minDist = 300;
+            const lastObs = obstacles[obstacles.length - 1];
+            if (lastObs && lastObs.y < H - minDist) return;
+            
+            const type = Math.random();
+            const obsLane = Math.floor(Math.random() * laneCount);
+            
+            if (type < 0.4) {
+                // Spike (affects all lanes in that row)
+                obstacles.push({
+                    type: 'spike',
+                    y: -50,
+                    lane: obsLane,
+                    width: laneWidth * 0.6,
+                    height: 40
+                });
+            } else if (type < 0.7) {
+                // Block
+                obstacles.push({
+                    type: 'block',
+                    y: -50,
+                    lane: obsLane,
+                    width: laneWidth * 0.5,
+                    height: 60
+                });
+            } else {
+                // Gap
+                const gapLane = Math.floor(Math.random() * laneCount);
+                obstacles.push({
+                    type: 'gap',
+                    y: -50,
+                    lane: gapLane,
+                    width: laneWidth * 0.8,
+                    height: 80
+                });
+            }
+        }
+        
+        function spawnCollectible() {
+            if (Math.random() > 0.02) return;
+            
+            const lastCol = collectibles[collectibles.length - 1];
+            if (lastCol && lastCol.y < H - 200) return;
+            
+            const lane = Math.floor(Math.random() * laneCount);
+            const type = Math.random();
+            let collectType;
+            
+            if (type < 0.4) collectType = 'shield';
+            else if (type < 0.7) collectType = 'multiplier';
+            else collectType = 'slow';
+            
+            collectibles.push({
+                type: collectType,
+                y: -50,
+                lane: lane,
+                size: 35,
+                pulse: 0,
+                collected: false
+            });
+        }
+        
+        function updatePowerupUI() {
+            document.getElementById('shieldIcon').classList.toggle('active', hasShield);
+            document.getElementById('multiplierIcon').classList.toggle('active', hasMultiplier);
+            document.getElementById('slowIcon').classList.toggle('active', hasSlow);
+        }
+        
+        function collectItem(item) {
+            if (item.collected) return;
+            item.collected = true;
+            
+            audio.playCollect();
+            flashOpacity = 0.3;
+            
+            // Collection particles
+            for (let i = 0; i < 15; i++) {
+                const angle = (i / 15) * Math.PI * 2;
+                particles.push({
+                    x: item.x,
+                    y: item.y,
+                    vx: Math.cos(angle) * 5,
+                    vy: Math.sin(angle) * 5,
+                    size: 8,
+                    color: item.type === 'shield' ? colors.collectShield : 
+                          item.type === 'multiplier' ? colors.collectMultiplier : colors.collectSlow,
+                    life: 1,
+                    decay: 0.03
+                });
+            }
+            
+            if (item.type === 'shield') {
+                hasShield = true;
+                powerupTimers.shield = 10;
+                audio.playPowerup();
+            } else if (item.type === 'multiplier') {
+                hasMultiplier = true;
+                multiplierValue = 2;
+                powerupTimers.multiplier = 8;
+                audio.playPowerup();
+            } else if (item.type === 'slow') {
+                hasSlow = true;
+                slowTimer = 5;
+                audio.playPowerup();
+            }
+            
+            score += 50 * multiplierValue;
+            updatePowerupUI();
+        }
+        
+        function update(dt) {
+            if (gameState !== 'playing') {
+                // Update death particles
+                particles = particles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.3;
+                    p.life -= p.decay;
+                    return p.life > 0;
+                });
+                
+                if (gameOverDelay > 0) {
+                    gameOverDelay -= dt;
+                }
+                return;
+            }
+            
+            // Lane smoothing
+            lane += (targetLane - lane) * 0.2;
+            
+            // Speed increase with slow powerup
+            let currentSpeed = hasSlow ? speed * 0.5 : speed;
+            speed = Math.min(maxSpeed, baseSpeed + distance / 2000);
+            
+            // Update distance and score
+            distance += currentSpeed;
+            score += Math.floor(currentSpeed * 0.1 * multiplierValue);
+            
+            // Powerup timers
+            if (powerupTimers.shield > 0) {
+                powerupTimers.shield -= dt;
+                if (powerupTimers.shield <= 0) {
+                    hasShield = false;
+                    updatePowerupUI();
+                }
+            }
+            if (powerupTimers.multiplier > 0) {
+                powerupTimers.multiplier -= dt;
+                if (powerupTimers.multiplier <= 0) {
+                    hasMultiplier = false;
+                    multiplierValue = 1;
+                    updatePowerupUI();
+                }
+            }
+            if (slowTimer > 0) {
+                slowTimer -= dt;
+                if (slowTimer <= 0) {
+                    hasSlow = false;
+                    updatePowerupUI();
+                }
+            }
+            
+            // Cube trail
+            cubeTrail.unshift({ x: getLaneX(lane), y: H * 0.4, lane: Math.round(lane) });
+            if (cubeTrail.length > 20) cubeTrail.pop();
+            
+            // Spawn
+            spawnObstacle();
+            spawnCollectible();
+            
+            // Update obstacles
+            obstacles = obstacles.filter(obs => {
+                obs.y += currentSpeed;
+                
+                // Collision check
+                const cubeY = H * 0.4;
+                const cubeSize = Math.min(W, H) * 0.06;
+                
+                if (obs.y + obs.height > cubeY - cubeSize/2 && 
+                    obs.y < cubeY + cubeSize/2) {
+                    const obsX = getLaneX(obs.lane);
+                    const cubeX = getLaneX(lane);
+                    
+                    if (Math.abs(obsX - cubeX) < laneWidth * 0.4) {
+                        if (obs.type === 'gap') {
+                            // Falling into gap
+                            if (!hasShield) {
+                                gameOver();
+                            } else {
+                                hasShield = false;
+                                powerupTimers.shield = 0;
+                                updatePowerupUI();
+                                // Bounce back
+                                targetLane = (lane + 1) % laneCount;
+                            }
+                        } else if (obs.type === 'spike' || obs.type === 'block') {
+                            if (!hasShield) {
+                                gameOver();
+                            } else {
+                                hasShield = false;
+                                powerupTimers.shield = 0;
+                                updatePowerupUI();
+                                // Destroy obstacle
+                                for (let i = 0; i < 20; i++) {
+                                    particles.push({
+                                        x: obsX,
+                                        y: obs.y + obs.height/2,
+                                        vx: (Math.random() - 0.5) * 10,
+                                        vy: (Math.random() - 0.5) * 10,
+                                        size: 10,
+                                        color: colors.obstacle,
+                                        life: 1,
+                                        decay: 0.03
+                                    });
+                                }
+                                return false;
+                            }
+                        }
+                    }
+                }
+                
+                return obs.y < H + 100;
+            });
+            
+            // Update collectibles
+            collectibles = collectibles.filter(col => {
+                col.y += currentSpeed;
+                col.pulse += 0.1;
+                
+                if (!col.collected) {
+                    const colX = getLaneX(col.lane);
+                    const cubeX = getLaneX(lane);
+                    const cubeY = H * 0.4;
+                    const colSize = col.size;
+                    
+                    if (Math.abs(colX - cubeX) < laneWidth * 0.4 &&
+                        Math.abs(col.y - cubeY) < 40) {
+                        collectItem(col);
+                    }
+                }
+                
+                return col.y < H + 50 && !col.collected;
+            });
+            
+            // Update particles
+            particles = particles.filter(p => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.2;
+                p.life -= p.decay;
+                return p.life > 0;
+            });
+            
+            // Screen shake decay
+            shakeAmount *= 0.9;
+            
+            // Flash decay
+            flashOpacity *= 0.9;
+            
+            // Update UI
+            document.getElementById('score').textContent = score;
+            document.getElementById('highScore').textContent = `BEST: ${highScore}`;
+        }
+        
+        // ============== RENDERING ==============
+        function drawGrid() {
+            ctx.strokeStyle = colors.grid;
+            ctx.lineWidth = 1;
+            
+            // Vertical lines
+            for (let i = 0; i <= laneCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * laneWidth, 0);
+                ctx.lineTo(i * laneWidth, H);
+                ctx.stroke();
+            }
+            
+            // Moving horizontal lines
+            const offset = (distance * 2) % 80;
+            for (let y = offset; y < H; y += 80) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(W, y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawObstacles() {
+            obstacles.forEach(obs => {
+                const x = getLaneX(obs.lane);
+                
+                if (obs.type === 'spike') {
+                    // Draw spike triangle
+                    ctx.fillStyle = colors.spike;
+                    ctx.shadowColor = colors.spike;
+                    ctx.shadowBlur = 15;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(x, obs.y + obs.height);
+                    ctx.lineTo(x - obs.width/2, obs.y + obs.height);
+                    ctx.lineTo(x, obs.y);
+                    ctx.lineTo(x + obs.width/2, obs.y + obs.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Inner glow
+                    ctx.fillStyle = '#ffaa88';
+                    ctx.beginPath();
+                    ctx.moveTo(x, obs.y + obs.height * 0.4);
+                    ctx.lineTo(x - obs.width/3, obs.y + obs.height);
+                    ctx.lineTo(x + obs.width/3, obs.y + obs.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                } else if (obs.type === 'block') {
+                    ctx.fillStyle = colors.block;
+                    ctx.shadowColor = colors.block;
+                    ctx.shadowBlur = 20;
+                    
+                    const size = obs.width;
+                    const y = obs.y + obs.height - size;
+                    
+                    // 3D block effect
+                    ctx.fillRect(x - size/2, y, size, size);
+                    
+                    // Top face
+                    ctx.fillStyle = '#ff6688';
+                    ctx.fillRect(x - size/2, y - 10, size, 10);
+                    
+                    // Side face
+                    ctx.fillStyle = '#cc2255';
+                    ctx.fillRect(x + size/2, y, 10, size);
+                    
+                } else if (obs.type === 'gap') {
+                    // Draw gap (dark area)
+                    ctx.fillStyle = colors.gap;
+                    ctx.shadowColor = '#000';
+                    ctx.shadowBlur = 30;
+                    
+                    const size = obs.width;
+                    ctx.fillRect(x - size/2, obs.y, size, obs.height);
+                    
+                    // Danger stripes
+                    ctx.fillStyle = '#ff0044';
+                    for (let i = 0; i < obs.height; i += 20) {
+                        ctx.fillRect(x - size/2, obs.y + i, size, 5);
+                    }
+                }
+                
+                ctx.shadowBlur = 0;
+            });
+        }
+        
+        function drawCollectibles() {
+            collectibles.forEach(col => {
+                if (col.collected) return;
+                
+                const x = getLaneX(col.lane);
+                const size = col.size + Math.sin(col.pulse) * 5;
+                const pulseSize = size * 1.3;
+                
+                let color;
+                if (col.type === 'shield') color = colors.collectShield;
+                else if (col.type === 'multiplier') color = colors.collectMultiplier;
+                else color = colors.collectSlow;
+                
+                // Glow
+                ctx.beginPath();
+                ctx.arc(x, col.y, pulseSize, 0, Math.PI * 2);
+                ctx.fillStyle = color + '33';
+                ctx.fill();
+                
+                // Main
+                ctx.beginPath();
+                ctx.arc(x, col.y, size/2, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 20;
+                ctx.fill();
+                
+                // Icon
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Orbitron';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                let icon = '';
+                if (col.type === 'shield') icon = '🛡';
+                else if (col.type === 'multiplier') icon = '×2';
+                else icon = '🐢';
+                
+                ctx.fillText(icon, x, col.y);
+            });
+        }
+        
+        function drawCubeTrail() {
+            const cubeSize = Math.min(W, H) * 0.06;
+            
+            cubeTrail.forEach((pos, i) => {
+                const alpha = 1 - i / cubeTrail.length;
+                const size = cubeSize * (1 - i * 0.03);
+                const color = colors.trail[i % colors.trail.length];
+                
+                ctx.fillStyle = color;
+                ctx.globalAlpha = alpha * 0.6;
+                
+                const offset = i * 3;
+                ctx.fillRect(pos.x - size/2, pos.y - size/2 + offset, size, size);
+            });
+            
+            ctx.globalAlpha = 1;
+        }
+        
+        function drawCube() {
+            if (gameState === 'gameOver') return;
+            
+            const cubeSize = Math.min(W, H) * 0.06;
+            const x = getLaneX(lane);
+            const y = H * 0.4;
+            
+            // Glow
+            ctx.shadowColor = colors.cubeGlow;
+            ctx.shadowBlur = 30;
+            
+            // Main cube
+            ctx.fillStyle = colors.cube;
+            ctx.fillRect(x - cubeSize/2, y - cubeSize/2, cubeSize, cubeSize);
+            
+            // Inner highlight
+            ctx.fillStyle = '#88ffff';
+            ctx.fillRect(x - cubeSize/3, y - cubeSize/3, cubeSize/1.5, cubeSize/1.5);
+            
+            // Shield effect
+            if (hasShield) {
+                ctx.beginPath();
+                ctx.arc(x, y, cubeSize, 0, Math.PI * 2);
+                ctx.strokeStyle = colors.collectShield;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = colors.collectShield;
+                ctx.shadowBlur = 20;
+                ctx.stroke();
+            }
+            
+            // Slow effect
+            if (hasSlow) {
+                ctx.strokeStyle = colors.collectSlow;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(x, y, cubeSize * 1.3, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            ctx.shadowBlur = 0;
+        }
+        
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+                ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+            });
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+        }
+        
+        function draw() {
+            // Apply screen shake
+            ctx.save();
+            if (shakeAmount > 0.5) {
+                ctx.translate(
+                    (Math.random() - 0.5) * shakeAmount,
+                    (Math.random() - 0.5) * shakeAmount
+                );
+            }
+            
+            // Clear
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, W, H);
+            
+            laneWidth = W / laneCount;
+            
+            // Draw game elements
+            drawGrid();
+            drawObstacles();
+            drawCollectibles();
+            drawCubeTrail();
+            drawCube();
+            drawParticles();
+            
+            ctx.restore();
+            
+            // Flash overlay
+            if (flashOpacity > 0.01) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${flashOpacity})`;
+                ctx.fillRect(0, 0, W, H);
+            }
+        }
+        
+        // ============== GAME LOOP ==============
+        let lastTime = 0;
+        
+        function gameLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.1);
+            lastTime = timestamp;
+            
+            laneWidth = W / laneCount;
+            
+            update(dt);
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Initialize
+        document.getElementById('highScore').textContent = `BEST: ${highScore}`;
+        
+        // Start loop
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>

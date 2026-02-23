@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARGET SWAP 3D - Chaos Party Game</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Orbitron:wght@400;700;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #050508;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            border: 4px solid #ff2d55;
+            border-radius: 16px;
+            box-shadow: 
+                0 0 80px rgba(255, 45, 85, 0.5),
+                0 0 120px rgba(255, 45, 85, 0.3),
+                inset 0 0 60px rgba(0,0,0,0.5);
+            overflow: hidden;
+        }
+        
+        canvas { display: block; border-radius: 12px; }
+        
+        #ui {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        #score, #timer {
+            font-family: 'Bangers', cursive;
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 3px 3px 0 #ff2d55, -1px -1px 0 #000, 0 0 20px rgba(255, 45, 85, 0.8);
+        }
+        
+        #timer {
+            font-size: 48px;
+            color: #00ffff;
+            text-shadow: 3px 3px 0 #0088aa, -1px -1px 0 #000, 0 0 30px rgba(0, 255, 255, 0.8);
+        }
+        
+        #swapIndicator {
+            font-family: 'Bangers', cursive;
+            font-size: 48px;
+            color: #ffff00;
+            text-shadow: 4px 4px 0 #ff2d55, -2px -2px 0 #000, 0 0 40px rgba(255, 255, 0, 0.8);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.15s ease-out;
+        }
+        
+        #swapIndicator.show {
+            opacity: 1;
+            transform: scale(1.2);
+            animation: swapPulse 0.5s ease-out;
+        }
+        
+        @keyframes swapPulse {
+            0% { transform: scale(1.8) rotate(-15deg); }
+            50% { transform: scale(1.3) rotate(5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        
+        #menu {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(20, 20, 40, 0.98) 0%, rgba(5, 5, 10, 0.98) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            z-index: 20;
+        }
+        
+        #menu.hidden { display: none; }
+        
+        h1 {
+            font-family: 'Bangers', cursive;
+            font-size: 80px;
+            background: linear-gradient(135deg, #ff2d55, #ff6b35, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(4px 4px 0 #000);
+            margin-bottom: 5px;
+            animation: titleBounce 2s ease-in-out infinite;
+        }
+        
+        @keyframes titleBounce {
+            0%, 100% { transform: translateY(0) rotate(-1deg); }
+            50% { transform: translateY(-15px) rotate(1deg); }
+        }
+        
+        .subtitle { font-size: 18px; color: #aaa; margin-bottom: 35px; text-transform: uppercase; letter-spacing: 4px; }
+        
+        .player-select { display: flex; gap: 25px; margin-bottom: 35px; }
+        
+        .player-btn {
+            width: 90px; height: 90px;
+            border: 3px solid #333;
+            border-radius: 16px;
+            background: linear-gradient(145deg, #1a1a2e, #0f0f1a);
+            color: #fff;
+            font-family: 'Bangers', cursive;
+            font-size: 36px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .player-btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+            transform: translateX(-100%);
+            transition: transform 0.5s;
+        }
+        
+        .player-btn:hover::before { transform: translateX(100%); }
+        .player-btn:hover { transform: scale(1.15) translateY(-5px); }
+        
+        .player-btn.selected {
+            border-color: #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5), inset 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        
+        .player-btn span {
+            display: block;
+            font-size: 11px;
+            font-family: 'Orbitron', sans-serif;
+            color: #666;
+            margin-top: 5px;
+            letter-spacing: 1px;
+        }
+        
+        #startBtn {
+            padding: 18px 60px;
+            font-family: 'Bangers', cursive;
+            font-size: 32px;
+            background: linear-gradient(135deg, #ff2d55, #ff6b35);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 2px 2px 0 #000;
+            box-shadow: 0 8px 0 #aa1a35, 0 12px 30px rgba(255, 45, 85, 0.5);
+            letter-spacing: 2px;
+        }
+        
+        #startBtn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 12px 0 #aa1a35, 0 20px 40px rgba(255, 45, 85, 0.6);
+        }
+        
+        #startBtn:active {
+            transform: translateY(3px);
+            box-shadow: 0 4px 0 #aa1a35, 0 8px 20px rgba(255, 45, 85, 0.4);
+        }
+        
+        .controls {
+            margin-top: 35px;
+            text-align: center;
+            color: #555;
+            font-size: 12px;
+            background: rgba(255,255,255,0.03);
+            padding: 20px 30px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .controls h3 { color: #ff2d55; margin-bottom: 12px; font-size: 14px; letter-spacing: 3px; }
+        
+        .key {
+            display: inline-block;
+            background: linear-gradient(145deg, #222, #111);
+            padding: 5px 12px;
+            border-radius: 6px;
+            margin: 3px;
+            font-family: monospace;
+            border: 1px solid #333;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        #winner {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: radial-gradient(ellipse at center, rgba(30, 30, 50, 0.98) 0%, rgba(10, 10, 20, 0.98) 100%);
+            padding: 50px 80px;
+            border-radius: 24px;
+            text-align: center;
+            z-index: 30;
+            display: none;
+            border: 4px solid #ffd700;
+            box-shadow: 0 0 60px rgba(255, 215, 0, 0.5), 0 0 100px rgba(255, 215, 0, 0.3);
+        }
+        
+        #winner.show {
+            display: block;
+            animation: winnerPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        @keyframes winnerPop {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-10deg); }
+            70% { transform: translate(-50%, -50%) scale(1.15) rotate(3deg); }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+        }
+        
+        #winner h2 {
+            font-family: 'Bangers', cursive;
+            font-size: 56px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(3px 3px 0 #000);
+        }
+        
+        #winner p { color: #fff; font-size: 22px; margin: 25px 0; letter-spacing: 1px; }
+        
+        #playAgain {
+            padding: 14px 40px;
+            font-family: 'Bangers', cursive;
+            font-size: 26px;
+            background: linear-gradient(135deg, #39ff14, #00cc00);
+            color: #000;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 0 #009900, 0 8px 20px rgba(57, 255, 20, 0.4);
+        }
+        
+        #playAgain:hover { transform: scale(1.1); box-shadow: 0 6px 0 #009900, 0 12px 30px rgba(57, 255, 20, 0.5); }
+        
+        .chaos-meter {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 250px;
+            height: 24px;
+            background: #111;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #333;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.5);
+        }
+        
+        .chaos-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #39ff14, #ffff00, #ff2d55);
+            width: 0%;
+            transition: width 0.3s ease-out;
+            box-shadow: 0 0 20px currentColor;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 24px;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div class="loading" id="loading">LOADING 3D ENGINE...</div>
+        <div id="ui">
+            <div id="score">TARGET SWAP 3D</div>
+            <div id="swapIndicator">🔄 SWAP!</div>
+            <div id="timer">60</div>
+        </div>
+        <div class="chaos-meter">
+            <div class="chaos-fill" id="chaosFill"></div>
+        </div>
+        
+        <div id="menu">
+            <h1>TARGET SWAP</h1>
+            <p class="subtitle">3D Chaos Arena</p>
+            
+            <div class="player-select">
+                <button class="player-btn selected" data-players="2">2<span>Players</span></button>
+                <button class="player-btn" data-players="3">3<span>Players</span></button>
+                <button class="player-btn" data-players="4">4<span>Players</span></button>
+            </div>
+            
+            <button id="startBtn">START GAME</button>
+            
+            <div class="controls">
+                <h3>Controls</h3>
+                <p><span class="key">P1: WASD</span> | <span class="key">P2: Arrow Keys</span></p>
+                <p><span class="key">P3: IJKL</span> | <span class="key">P4: TFGH</span></p>
+                <p style="margin-top: 10px; color: #ff6b35;">🎮 Gamepad Supported!</p>
+            </div>
+        </div>
+        
+        <div id="winner">
+            <h2>🏆 WINNER!</h2>
+            <p id="winnerText">Player 1 Wins!</p>
+            <button id="playAgain">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ==================== THREE.JS 3D ENGINE ====================
+        
+        let scene, camera, renderer;
+        let players3D = [];
+        let obstacles3D = [];
+        let powerups3D = [];
+        let particles3D = [];
+        let trailParticles = [];
+        let floor, walls = [];
+        let ambientLight, spotLights = [];
+        
+        const ARENA_WIDTH = 28;
+        const ARENA_HEIGHT = 18;
+        
+        const PLAYER_COLORS = [0xff2d55, 0x00d4ff, 0x39ff14, 0xffd700];
+        const PLAYER_NAMES = ['RED', 'CYAN', 'LIME', 'GOLD'];
+        
+        function init3D() {
+            const container = document.getElementById('gameContainer');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050510, 0.015);
+            
+            camera = new THREE.PerspectiveCamera(50, 16/10, 0.1, 1000);
+            camera.position.set(0, 35, 30);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(900, 600);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.insertBefore(renderer.domElement, container.firstChild);
+            
+            document.getElementById('loading').style.display = 'none';
+            
+            createArena();
+            createLighting();
+        }
+        
+        function createArena() {
+            const floorGeom = new THREE.PlaneGeometry(ARENA_WIDTH, ARENA_HEIGHT, 28, 18);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0x0a0a15,
+                metalness: 0.8,
+                roughness: 0.2,
+            });
+            floor = new THREE.Mesh(floorGeom, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+            
+            const gridHelper = new THREE.GridHelper(ARENA_WIDTH, 14, 0x00ffff, 0x1a1a3a);
+            gridHelper.position.y = 0.01;
+            gridHelper.material.opacity = 0.4;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+            
+            const gridHelper2 = new THREE.GridHelper(ARENA_WIDTH, 28, 0xff2d55, 0x1a1a3a);
+            gridHelper2.position.y = 0.02;
+            gridHelper2.material.opacity = 0.15;
+            gridHelper2.material.transparent = true;
+            scene.add(gridHelper2);
+            
+            const wallMaterial = new THREE.MeshStandardMaterial({
+                color: 0x111122,
+                emissive: 0xff2d55,
+                emissiveIntensity: 0.3,
+                metalness: 0.9,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            const wallHeight = 3;
+            const wallThickness = 0.5;
+            
+            const wallPositions = [
+                { x: 0, z: -ARENA_HEIGHT/2 - wallThickness/2, w: ARENA_WIDTH + wallThickness*2, d: wallThickness },
+                { x: 0, z: ARENA_HEIGHT/2 + wallThickness/2, w: ARENA_WIDTH + wallThickness*2, d: wallThickness },
+                { x: -ARENA_WIDTH/2 - wallThickness/2, z: 0, w: wallThickness, d: ARENA_HEIGHT },
+                { x: ARENA_WIDTH/2 + wallThickness/2, z: 0, w: wallThickness, d: ARENA_HEIGHT }
+            ];
+            
+            wallPositions.forEach(pos => {
+                const wallGeom = new THREE.BoxGeometry(pos.w, wallHeight, pos.d);
+                const wall = new THREE.Mesh(wallGeom, wallMaterial.clone());
+                wall.position.set(pos.x, wallHeight/2, pos.z);
+                wall.castShadow = true;
+                wall.receiveShadow = true;
+                scene.add(wall);
+                walls.push(wall);
+                
+                const edgeGeom = new THREE.BoxGeometry(pos.w + 0.1, 0.1, pos.d + 0.1);
+                const edgeMat = new THREE.MeshBasicMaterial({ color: 0xff2d55 });
+                const edge = new THREE.Mesh(edgeGeom, edgeMat);
+                edge.position.set(pos.x, wallHeight, pos.z);
+                scene.add(edge);
+            });
+            
+            const pillarGeom = new THREE.CylinderGeometry(0.4, 0.4, 3, 16);
+            const pillarMat = new THREE.MeshStandardMaterial({
+                color: 0x222233,
+                emissive: 0x00ffff,
+                emissiveIntensity: 0.5
+            });
+            
+            const corners = [
+                [-ARENA_WIDTH/2, -ARENA_HEIGHT/2],
+                [ARENA_WIDTH/2, -ARENA_HEIGHT/2],
+                [-ARENA_WIDTH/2, ARENA_HEIGHT/2],
+                [ARENA_WIDTH/2, ARENA_HEIGHT/2]
+            ];
+            
+            corners.forEach(([x, z]) => {
+                const pillar = new THREE.Mesh(pillarGeom, pillarMat.clone());
+                pillar.position.set(x, 1.5, z);
+                pillar.castShadow = true;
+                scene.add(pillar);
+            });
+        }
+        
+        function createLighting() {
+            ambientLight = new THREE.AmbientLight(0x222244, 0.4);
+            scene.add(ambientLight);
+            
+            const spotPositions = [
+                { x: -8, z: -5, color: 0xff2d55 },
+                { x: 8, z: -5, color: 0x00d4ff },
+                { x: -8, z: 5, color: 0x39ff14 },
+                { x: 8, z: 5, color: 0xffd700 }
+            ];
+            
+            spotPositions.forEach(pos => {
+                const spot = new THREE.SpotLight(pos.color, 1.5, 30, Math.PI/6, 0.5);
+                spot.position.set(pos.x, 20, pos.z);
+                spot.target.position.set(0, 0, 0);
+                spot.castShadow = true;
+                spot.shadow.mapSize.width = 1024;
+                spot.shadow.mapSize.height = 1024;
+                scene.add(spot);
+                scene.add(spot.target);
+                spotLights.push(spot);
+            });
+            
+            const centerLight = new THREE.PointLight(0xffffff, 0.5, 30);
+            centerLight.position.set(0, 15, 0);
+            scene.add(centerLight);
+        }
+        
+        // ==================== 3D CHARACTERS ====================
+        
+        function createPlayer3D(player) {
+            const group = new THREE.Group();
+            
+            const bodyGeom = new THREE.IcosahedronGeometry(0.8, 1);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: PLAYER_COLORS[player.id],
+                emissive: PLAYER_COLORS[player.id],
+                emissiveIntensity: 0.4,
+                metalness: 0.3,
+                roughness: 0.4,
+            });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.castShadow = true;
+            body.scale.y = 0.9;
+            group.add(body);
+            
+            const coreGeom = new THREE.SphereGeometry(0.5, 16, 16);
+            const coreMat = new THREE.MeshBasicMaterial({
+                color: PLAYER_COLORS[player.id],
+                transparent: true,
+                opacity: 0.6
+            });
+            const core = new THREE.Mesh(coreGeom, coreMat);
+            group.add(core);
+            
+            const eyeGeom = new THREE.SphereGeometry(0.18, 16, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            
+            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+            leftEye.position.set(-0.25, 0.25, 0.65);
+            group.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+            rightEye.position.set(0.25, 0.25, 0.65);
+            group.add(rightEye);
+            
+            const pupilGeom = new THREE.SphereGeometry(0.1, 12, 12);
+            const pupilMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftPupil = new THREE.Mesh(pupilGeom, pupilMat);
+            leftPupil.position.set(-0.25, 0.25, 0.8);
+            group.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(pupilGeom, pupilMat);
+            rightPupil.position.set(0.25, 0.25, 0.8);
+            group.add(rightPupil);
+            
+            const crownGeom = new THREE.ConeGeometry(0.15, 0.4, 4);
+            const crownMat = new THREE.MeshStandardMaterial({
+                color: 0xffd700,
+                emissive: 0xffd700,
+                emissiveIntensity: 0.5,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const crown = new THREE.Mesh(crownGeom, crownMat);
+            crown.position.set(0, 1, 0);
+            crown.rotation.x = Math.PI;
+            group.add(crown);
+            
+            const shadowGeom = new THREE.CircleGeometry(1, 32);
+            const shadowMat = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.4
+            });
+            const shadow = new THREE.Mesh(shadowGeom, shadowMat);
+            shadow.rotation.x = -Math.PI / 2;
+            shadow.position.y = -0.75;
+            group.add(shadow);
+            
+            group.userData = {
+                body: body, core: core, leftEye: leftEye, rightEye: rightEye, 
+                leftPupil: leftPupil, rightPupil: rightPupil, crown: crown, shadow: shadow,
+                baseY: 0.8,
+                breathPhase: Math.random() * Math.PI * 2,
+                playerId: player.id
+            };
+            
+            return group;
+        }
+        
+        function updatePlayer3D(player, playerGroup) {
+            if (!playerGroup) return;
+            
+            const ud = playerGroup.userData;
+            
+            playerGroup.position.set(
+                (player.x / 450 - 0.5) * ARENA_WIDTH,
+                0.8,
+                (player.y / 300 - 0.5) * ARENA_HEIGHT
+            );
+            
+            ud.breathPhase += 0.05;
+            const breathScale = 1 + Math.sin(ud.breathPhase) * 0.05;
+            ud.body.scale.set(breathScale, breathScale * 0.9, breathScale);
+            ud.core.scale.set(breathScale * 0.8, breathScale * 0.8, breathScale * 0.8);
+            
+            const speed = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+            const targetRotX = -player.vy * 0.03;
+            const targetRotZ = -player.vx * 0.03;
+            playerGroup.rotation.x += (targetRotX - playerGroup.rotation.x) * 0.2;
+            playerGroup.rotation.z += (targetRotZ - playerGroup.rotation.z) * 0.2;
+            
+            if (gameRunning && players[player.targetId]) {
+                const target = players[player.targetId];
+                const targetPos = new THREE.Vector3(
+                    (target.x / 450 - 0.5) * ARENA_WIDTH,
+                    0.8,
+                    (target.y / 300 - 0.5) * ARENA_HEIGHT
+                );
+                
+                const lookDir = targetPos.clone().sub(playerGroup.position).normalize();
+                ud.leftPupil.position.x = -0.25 + lookDir.x * 0.08;
+                ud.leftPupil.position.y = 0.25 + lookDir.y * 0.08;
+                ud.rightPupil.position.x = 0.25 + lookDir.x * 0.08;
+                ud.rightPupil.position.y = 0.25 + lookDir.y * 0.08;
+            }
+            
+            if (player.stunned > 0) {
+                playerGroup.rotation.y += 0.2;
+                ud.body.material.emissiveIntensity = 0.1 + Math.sin(ud.breathPhase * 3) * 0.2;
+            } else {
+                ud.body.material.emissiveIntensity = 0.4;
+            }
+            
+            if (player.sizeBoost > 0) {
+                const boostScale = 1 + player.sizeBoost * 0.3;
+                playerGroup.scale.setScalar(boostScale);
+            } else {
+                playerGroup.scale.setScalar(1);
+            }
+            
+            ud.shadow.scale.setScalar(1 + speed * 0.1);
+            ud.shadow.material.opacity = 0.4 - speed * 0.02;
+            
+            if (speed > 3) {
+                spawnTrailParticle(playerGroup.position, PLAYER_COLORS[player.id]);
+            }
+        }
+        
+        // ==================== 3D PARTICLES ====================
+        
+        function spawnTrailParticle(pos, color) {
+            const geom = new THREE.SphereGeometry(0.15, 8, 8);
+            const mat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.6
+            });
+            const particle = new THREE.Mesh(geom, mat);
+            particle.position.copy(pos);
+            particle.position.y = 0.3;
+            particle.userData = {
+                velocity: new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    Math.random() * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                ),
+                life: 1,
+                decay: 0.05
+            };
+            scene.add(particle);
+            trailParticles.push(particle);
+        }
+        
+        function spawnExplosion(pos, color, count) {
+            count = count || 20;
+            for (let i = 0; i < count; i++) {
+                const geom = new THREE.SphereGeometry(0.1 + Math.random() * 0.2, 8, 8);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1
+                });
+                const particle = new THREE.Mesh(geom, mat);
+                particle.position.copy(pos);
+                
+                const angle = Math.random() * Math.PI * 2;
+                const pitch = (Math.random() - 0.5) * Math.PI;
+                const spd = 0.2 + Math.random() * 0.3;
+                
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        Math.cos(angle) * Math.cos(pitch) * spd,
+                        Math.sin(pitch) * spd + 0.2,
+                        Math.sin(angle) * Math.cos(pitch) * spd
+                    ),
+                    life: 1,
+                    decay: 0.02 + Math.random() * 0.02
+                };
+                
+                scene.add(particle);
+                particles3D.push(particle);
+            }
+        }
+        
+        function spawnSparkles(pos, color, count) {
+            count = count || 15;
+            for (let i = 0; i < count; i++) {
+                const geom = new THREE.OctahedronGeometry(0.1, 0);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: color,
+                    transparent: true,
+                    opacity: 1
+                });
+                const particle = new THREE.Mesh(geom, mat);
+                particle.position.copy(pos);
+                
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.3,
+                        0.3 + Math.random() * 0.3,
+                        (Math.random() - 0.5) * 0.3
+                    ),
+                    life: 1,
+                    decay: 0.03,
+                    rotationSpeed: new THREE.Vector3(
+                        Math.random() * 0.2,
+                        Math.random() * 0.2,
+                        Math.random() * 0.2
+                    )
+                };
+                
+                scene.add(particle);
+                particles3D.push(particle);
+            }
+        }
+        
+        function spawnSwapEffect() {
+            for (let i = 0; i < 40; i++) {
+                const angle = (i / 40) * Math.PI * 2;
+                const radius = 2 + Math.random() * 3;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                const geom = new THREE.SphereGeometry(0.15, 8, 8);
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,
+                    transparent: true,
+                    opacity: 1
+                });
+                const particle = new THREE.Mesh(geom, mat);
+                particle.position.set(x, 1, z);
+                
+                const targetAngle = angle + Math.PI;
+                particle.userData = {
+                    velocity: new THREE.Vector3(
+                        Math.cos(targetAngle) * 0.15,
+                        (Math.random() - 0.3) * 0.1,
+                        Math.sin(targetAngle) * 0.15
+                    ),
+                    life: 1,
+                    decay: 0.015
+                };
+                
+                scene.add(particle);
+                particles3D.push(particle);
+            }
+        }
+        
+        function updateParticles() {
+            trailParticles = trailParticles.filter(function(p) {
+                p.userData.life -= p.userData.decay;
+                p.material.opacity = p.userData.life * 0.6;
+                p.position.add(p.userData.velocity);
+                p.scale.setScalar(p.userData.life);
+                
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    return false;
+                }
+                return true;
+            });
+            
+            particles3D = particles3D.filter(function(p) {
+                p.userData.life -= p.userData.decay;
+                p.material.opacity = p.userData.life;
+                p.position.add(p.userData.velocity);
+                p.userData.velocity.y -= 0.01;
+                
+                if (p.userData.rotationSpeed) {
+                    p.rotation.x += p.userData.rotationSpeed.x;
+                    p.rotation.y += p.userData.rotationSpeed.y;
+                    p.rotation.z += p.userData.rotationSpeed.z;
+                }
+                
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        // ==================== 3D OBSTACLES ====================
+        
+        function createObstacle3D(obstacle) {
+            const group = new THREE.Group();
+            
+            if (obstacle.type === 'spinner') {
+                const barGeom = new THREE.BoxGeometry(3, 0.5, 0.5);
+                const barMat = new THREE.MeshStandardMaterial({
+                    color: 0xff6b35,
+                    emissive: 0xff6b35,
+                    emissiveIntensity: 0.3,
+                    metalness: 0.7,
+                    roughness: 0.3
+                });
+                const bar = new THREE.Mesh(barGeom, barMat);
+                bar.castShadow = true;
+                group.add(bar);
+                
+                const hubGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.6, 16);
+                const hub = new THREE.Mesh(hubGeom, barMat.clone());
+                hub.rotation.x = Math.PI / 2;
+                group.add(hub);
+                
+                group.userData = { type: 'spinner', bar: bar, rotationSpeed: obstacle.rotationSpeed };
+                
+            } else if (obstacle.type === 'bumper') {
+                const bumperGeom = new THREE.CylinderGeometry(1.2, 1.2, 0.6, 32);
+                const bumperMat = new THREE.MeshStandardMaterial({
+                    color: 0xff2d55,
+                    emissive: 0xff2d55,
+                    emissiveIntensity: 0.5,
+                    metalness: 0.6,
+                    roughness: 0.3
+                });
+                const bumper = new THREE.Mesh(bumperGeom, bumperMat);
+                bumper.castShadow = true;
+                group.add(bumper);
+                
+                const ringGeom = new THREE.TorusGeometry(1.3, 0.1, 16, 32);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const ring = new THREE.Mesh(ringGeom, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                ring.position.y = 0.25;
+                group.add(ring);
+                
+                group.userData = { type: 'bumper', bumper: bumper };
+            }
+            
+            return group;
+        }
+        
+        function updateObstacle3D(obstacle, group) {
+            if (!group) return;
+            
+            const x = (obstacle.x / 450 - 0.5) * ARENA_WIDTH;
+            const z = (obstacle.y / 300 - 0.5) * ARENA_HEIGHT;
+            group.position.set(x, 0.3, z);
+            
+            if (obstacle.type === 'spinner') {
+                obstacle.rotation += obstacle.rotationSpeed;
+                group.rotation.y = obstacle.rotation;
+            }
+        }
+        
+        // ==================== 3D POWERUPS ====================
+        
+        function createPowerup3D(powerup) {
+            const group = new THREE.Group();
+            
+            const colors = { speed: 0x00ff00, size: 0xff00ff, stun: 0xffff00, swap: 0x00ffff };
+            const color = colors[powerup.type] || 0xffffff;
+            
+            const geom = new THREE.OctahedronGeometry(0.6, 0);
+            const mat = new THREE.MeshStandardMaterial({
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            const shape = new THREE.Mesh(geom, mat);
+            shape.castShadow = true;
+            group.add(shape);
+            
+            const glowGeom = new THREE.SphereGeometry(0.9, 16, 16);
+            const glowMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.3
+            });
+            const glow = new THREE.Mesh(glowGeom, glowMat);
+            group.add(glow);
+            
+            group.userData = { type: powerup.type, shape: shape, glow: glow, bobPhase: Math.random() * Math.PI * 2 };
+            
+            return group;
+        }
+        
+        function updatePowerup3D(powerup, group) {
+            if (!group) return;
+            
+            const x = (powerup.x / 450 - 0.5) * ARENA_WIDTH;
+            const z = (powerup.y / 300 - 0.5) * ARENA_HEIGHT;
+            
+            group.userData.bobPhase += 0.08;
+            const bobY = Math.sin(group.userData.bobPhase) * 0.2;
+            
+            group.position.set(x, 1 + bobY, z);
+            group.rotation.y += 0.03;
+            group.rotation.x += 0.02;
+        }
+
+        // ==================== GAME LOGIC ====================
+        
+        let gameRunning = false;
+        let playerCount = 2;
+        let players = [];
+        let obstacles = [];
+        let powerups = [];
+        let screenShake = 0;
+        let chaosLevel = 0;
+        let gameTime = 0;
+        let swapTimer = 0;
+        const ROUND_TIME = 60;
+        
+        let audioCtx = null;
+        let bgmOsc = null;
+        let bgmGain = null;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                startBGM();
+            }
+        }
+        
+        function startBGM() {
+            if (!audioCtx) return;
+            
+            bgmGain = audioCtx.createGain();
+            bgmGain.gain.value = 0.08;
+            bgmGain.connect(audioCtx.destination);
+            
+            // Simple synthesized beat
+            function playBeat() {
+                if (!gameRunning || !audioCtx) return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(bgmGain);
+                
+                osc.type = 'square';
+                osc.frequency.value = 55;
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+                
+                // Hi-hat
+                const hat = audioCtx.createOscillator();
+                const hatGain = audioCtx.createGain();
+                hat.connect(hatGain);
+                hatGain.connect(bgmGain);
+                
+                hat.type = 'triangle';
+                hat.frequency.value = 8000;
+                hatGain.gain.setValueAtTime(0.05, audioCtx.currentTime + 0.05);
+                hatGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+                
+                hat.start(audioCtx.currentTime + 0.05);
+                hat.stop(audioCtx.currentTime + 0.08);
+                
+                setTimeout(playBeat, 500);
+            }
+            
+            playBeat();
+        }
+        
+        function playSound(type, playerId) {
+            if (!audioCtx) return;
+            
+            const color = PLAYER_COLORS[playerId || 0];
+            const freq = 200 + (playerId || 0) * 100;
+            
+            switch(type) {
+                case 'swap':
+                    const osc1 = audioCtx.createOscillator();
+                    const gain1 = audioCtx.createGain();
+                    osc1.connect(gain1);
+                    gain1.connect(audioCtx.destination);
+                    
+                    osc1.type = 'square';
+                    osc1.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    osc1.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                    osc1.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.25);
+                    gain1.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc1.start();
+                    osc1.stop(audioCtx.currentTime + 0.3);
+                    break;
+                    
+                case 'catch':
+                    const osc2 = audioCtx.createOscillator();
+                    const gain2 = audioCtx.createGain();
+                    osc2.connect(gain2);
+                    gain2.connect(audioCtx.destination);
+                    
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(freq * 3, audioCtx.currentTime);
+                    osc2.frequency.exponentialRampToValueAtTime(freq * 6, audioCtx.currentTime + 0.1);
+                    gain2.gain.setValueAtTime(0.35, audioCtx.currentTime);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                    osc2.start();
+                    osc2.stop(audioCtx.currentTime + 0.2);
+                    
+                    // Add a "ding" harmonics
+                    const ding = audioCtx.createOscillator();
+                    const dingGain = audioCtx.createGain();
+                    ding.connect(dingGain);
+                    dingGain.connect(audioCtx.destination);
+                    ding.type = 'sine';
+                    ding.frequency.value = freq * 8;
+                    dingGain.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.05);
+                    dingGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+                    ding.start(audioCtx.currentTime + 0.05);
+                    ding.stop(audioCtx.currentTime + 0.4);
+                    break;
+                    
+                case 'hit':
+                    const osc3 = audioCtx.createOscillator();
+                    const gain3 = audioCtx.createGain();
+                    osc3.connect(gain3);
+                    gain3.connect(audioCtx.destination);
+                    
+                    osc3.type = 'sawtooth';
+                    osc3.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    osc3.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.15);
+                    gain3.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                    gain3.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc3.start();
+                    osc3.stop(audioCtx.currentTime + 0.15);
+                    break;
+                    
+                case 'powerup':
+                    const osc4 = audioCtx.createOscillator();
+                    const gain4 = audioCtx.createGain();
+                    osc4.connect(gain4);
+                    gain4.connect(audioCtx.destination);
+                    
+                    osc4.type = 'sine';
+                    osc4.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc4.frequency.exponentialRampToValueAtTime(900, audioCtx.currentTime + 0.12);
+                    osc4.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + 0.25);
+                    osc4.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.4);
+                    gain4.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                    gain4.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    osc4.start();
+                    osc4.stop(audioCtx.currentTime + 0.5);
+                    break;
+                    
+                case 'win':
+                    [523, 659, 784, 1047, 1318].forEach(function(freq, i) {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = i < 2 ? 'sine' : 'square';
+                        o.frequency.value = freq;
+                        g.gain.setValueAtTime(0.15, audioCtx.currentTime + i * 0.12);
+                        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.12 + 0.4);
+                        o.start(audioCtx.currentTime + i * 0.12);
+                        o.stop(audioCtx.currentTime + i * 0.12 + 0.4);
+                    });
+                    break;
+            }
+        }
+        
+        class Player {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = 20;
+                this.baseSpeed = 6;
+                this.speed = 6;
+                this.targetId = (id + 1) % playerCount;
+                this.stunned = 0;
+                this.sizeBoost = 0;
+                this.score = 0;
+                this.color = PLAYER_COLORS[id];
+                this.name = PLAYER_NAMES[id];
+            }
+            
+            update() {
+                if (this.stunned > 0) {
+                    this.stunned--;
+                    this.vx *= 0.8;
+                    this.vy *= 0.8;
+                }
+                this.vx *= 0.85;
+                this.vy *= 0.85;
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
+                if (this.x > 900 - this.radius) { this.x = 900 - this.radius; this.vx *= -0.5; }
+                if (this.y < this.radius) { this.y = this.radius; this.vy *= -0.5; }
+                if (this.y > 600 - this.radius) { this.y = 600 - this.radius; this.vy *= -0.5; }
+                
+                if (this.sizeBoost > 0) {
+                    this.sizeBoost -= 0.01;
+                    this.radius = 20 + Math.max(0, this.sizeBoost) * 15;
+                } else {
+                    this.radius = 20;
+                }
+                
+                if (this.speed > this.baseSpeed) this.speed -= 0.02;
+            }
+            
+            catchTarget() {
+                const target = players[this.targetId];
+                return Math.hypot(this.x - target.x, this.y - target.y) < this.radius + target.radius;
+            }
+        }
+        
+        class Obstacle {
+            constructor(x, y, w, h, type) {
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+                this.type = type;
+                this.rotation = 0;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+            }
+            
+            checkCollision(player) {
+                if (this.type === 'bumper') {
+                    const cx = this.x + this.w / 2;
+                    const cy = this.y + this.h / 2;
+                    const dist = Math.hypot(player.x - cx, player.y - cy);
+                    if (dist < this.w / 2 + player.radius) {
+                        const angle = Math.atan2(player.y - cy, player.x - cx);
+                        player.vx = Math.cos(angle) * 15;
+                        player.vy = Math.sin(angle) * 15;
+                        screenShake = 12;
+                        playSound('hit', player.id);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        class Powerup {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = 15;
+                this.bob = Math.random() * Math.PI * 2;
+            }
+            
+            getColor() {
+                return { speed: '#00ff00', size: '#ff00ff', stun: '#ffff00', swap: '#00ffff' }[this.type] || '#fff';
+            }
+            
+            checkCollision(player) {
+                return Math.hypot(this.x - player.x, this.y - player.y) < this.radius + player.radius;
+            }
+        }
+        
+        function initGame() {
+            // Clear existing 3D objects
+            players3D.forEach(function(p) { scene.remove(p); });
+            obstacles3D.forEach(function(o) { scene.remove(o); });
+            powerups3D.forEach(function(p) { scene.remove(p); });
+            particles3D.forEach(function(p) { scene.remove(p); });
+            trailParticles.forEach(function(p) { scene.remove(p); });
+            
+            players3D = [];
+            obstacles3D = [];
+            powerups3D = [];
+            particles3D = [];
+            trailParticles = [];
+            
+            players = [];
+            obstacles = [];
+            powerups = [];
+            screenShake = 0;
+            chaosLevel = 0;
+            gameTime = ROUND_TIME;
+            swapTimer = 0;
+            
+            const positions = [
+                {x: 100, y: 100},
+                {x: 800, y: 100},
+                {x: 100, y: 500},
+                {x: 800, y: 500}
+            ];
+            
+            for (let i = 0; i < playerCount; i++) {
+                const p = new Player(i, positions[i].x, positions[i].y);
+                players.push(p);
+                
+                const p3d = createPlayer3D(p);
+                players3D.push(p3d);
+                scene.add(p3d);
+            }
+            
+            obstacles.push(new Obstacle(450 - 60, 300 - 20, 120, 40, 'spinner'));
+            obstacles.push(new Obstacle(450 - 20, 300 - 60, 40, 120, 'spinner'));
+            obstacles.push(new Obstacle(200, 200, 50, 50, 'bumper'));
+            obstacles.push(new Obstacle(700, 200, 50, 50, 'bumper'));
+            obstacles.push(new Obstacle(200, 400, 50, 50, 'bumper'));
+            obstacles.push(new Obstacle(700, 400, 50, 50, 'bumper'));
+            
+            obstacles.forEach(function(o) {
+                const o3d = createObstacle3D(o);
+                obstacles3D.push(o3d);
+                scene.add(o3d);
+            });
+            
+            spawnPowerup();
+        }
+        
+        function spawnPowerup() {
+            const types = ['speed', 'size', 'stun', 'swap'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const x = 100 + Math.random() * 700;
+            const y = 100 + Math.random() * 400;
+            const p = new Powerup(x, y, type);
+            powerups.push(p);
+            
+            const p3d = createPowerup3D(p);
+            powerups3D.push(p3d);
+            scene.add(p3d);
+        }
+        
+        function swapTargets() {
+            const swapType = Math.random();
+            if (swapType < 0.5) {
+                const a = Math.floor(Math.random() * playerCount);
+                let b = Math.floor(Math.random() * playerCount);
+                while (b === a) b = Math.floor(Math.random() * playerCount);
+                const temp = players[a].targetId;
+                players[a].targetId = players[b].targetId;
+                players[b].targetId = temp;
+            } else {
+                const shuffled = [...Array(playerCount).keys()].sort(function() { return Math.random() - 0.5; });
+                players.forEach(function(p, i) { p.targetId = shuffled[i]; });
+            }
+            
+            screenShake = 15;
+            chaosLevel = Math.min(chaosLevel + 30, 100);
+            
+            const centerPos = new THREE.Vector3(0, 1, 0);
+            spawnSwapEffect();
+            spawnExplosion(centerPos, 0xffff00, 30);
+            
+            const indicator = document.getElementById('swapIndicator');
+            indicator.classList.add('show');
+            setTimeout(function() { indicator.classList.remove('show'); }, 1000);
+            playSound('swap', 0);
+        }
+        
+        function applyPowerup(powerup, player) {
+            playSound('powerup', player.id);
+            
+            switch(powerup.type) {
+                case 'speed':
+                    player.speed = 12;
+                    break;
+                case 'size':
+                    player.sizeBoost = 1;
+                    break;
+                case 'stun':
+                    players.forEach(function(p) { if (p !== player) p.stunned = 120; });
+                    break;
+                case 'swap':
+                    swapTargets();
+                    break;
+            }
+            
+            const pos = new THREE.Vector3(
+                (powerup.x / 450 - 0.5) * ARENA_WIDTH,
+                1,
+                (powerup.y / 300 - 0.5) * ARENA_HEIGHT
+            );
+            spawnSparkles(pos, parseInt(powerup.getColor().replace('#', '0x'), 16), 15);
+        }
+        
+        const keys = {};
+        document.addEventListener('keydown', function(e) {
+            keys[e.code] = true;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+        });
+        document.addEventListener('keyup', function(e) { keys[e.code] = false; });
+        
+        let gamepadIndex = null;
+        window.addEventListener('gamepadconnected', function(e) { gamepadIndex = e.gamepad.index; });
+        window.addEventListener('gamepaddisconnected', function(e) { if (gamepadIndex === e.gamepad.index) gamepadIndex = null; });
+        
+        function handleInput() {
+            if (keys['KeyW']) players[0].vy = -players[0].speed;
+            if (keys['KeyS']) players[0].vy = players[0].speed;
+            if (keys['KeyA']) players[0].vx = -players[0].speed;
+            if (keys['KeyD']) players[0].vx = players[0].speed;
+            
+            if (keys['ArrowUp']) players[1].vy = -players[1].speed;
+            if (keys['ArrowDown']) players[1].vy = players[1].speed;
+            if (keys['ArrowLeft']) players[1].vx = -players[1].speed;
+            if (keys['ArrowRight']) players[1].vx = players[1].speed;
+            
+            if (keys['KeyI'] && players[2]) players[2].vy = -players[2].speed;
+            if (keys['KeyK'] && players[2]) players[2].vy = players[2].speed;
+            if (keys['KeyJ'] && players[2]) players[2].vx = -players[2].speed;
+            if (keys['KeyL'] && players[2]) players[2].vx = players[2].speed;
+            
+            if (keys['KeyT'] && players[3]) players[3].vy = -players[3].speed;
+            if (keys['KeyG'] && players[3]) players[3].vy = players[3].speed;
+            if (keys['KeyF'] && players[3]) players[3].vx = -players[3].speed;
+            if (keys['KeyH'] && players[3]) players[3].vx = players[3].speed;
+            
+            if (gamepadIndex !== null) {
+                const gp = navigator.getGamepads()[gamepadIndex];
+                if (gp) {
+                    const dz = 0.3;
+                    if (Math.abs(gp.axes[0]) > dz) players[0].vx = gp.axes[0] * players[0].speed;
+                    if (Math.abs(gp.axes[1]) > dz) players[0].vy = gp.axes[1] * players[0].speed;
+                    if (playerCount > 1 && Math.abs(gp.axes[2]) > dz) players[1].vx = gp.axes[2] * players[1].speed;
+                    if (playerCount > 1 && Math.abs(gp.axes[3]) > dz) players[1].vy = gp.axes[3] * players[1].speed;
+                }
+            }
+        }
+        
+        function update() {
+            if (!gameRunning) return;
+            
+            handleInput();
+            players.forEach(function(p) { p.update(); });
+            obstacles.forEach(function(o) { players.forEach(function(p) { o.checkCollision(p); }); });
+            
+            players.forEach(function(p) {
+                if (p.catchTarget() && players[p.targetId].stunned === 0) {
+                    p.score++;
+                    playSound('catch', p.id);
+                    screenShake = 8;
+                    
+                    const target = players[p.targetId];
+                    const pos = new THREE.Vector3(
+                        (target.x / 450 - 0.5) * ARENA_WIDTH,
+                        1,
+                        (target.y / 300 - 0.5) * ARENA_HEIGHT
+                    );
+                    spawnExplosion(pos, PLAYER_COLORS[p.targetId], 25);
+                    
+                    const positions = [
+                        {x: 100, y: 100},
+                        {x: 800, y: 100},
+                        {x: 100, y: 500},
+                        {x: 800, y: 500}
+                    ];
+                    target.x = positions[target.id].x;
+                    target.y = positions[target.id].y;
+                    target.vx = 0;
+                    target.vy = 0;
+                    
+                    let newTarget = Math.floor(Math.random() * playerCount);
+                    while (newTarget === target.targetId || newTarget === target.id) newTarget = Math.floor(Math.random() * playerCount);
+                    target.targetId = newTarget;
+                }
+            });
+            
+            powerups = powerups.filter(function(p, i) {
+                let collected = false;
+                players.forEach(function(player) {
+                    if (p.checkCollision(player)) {
+                        applyPowerup(p, player);
+                        collected = true;
+                        if (powerups3D[i]) {
+                            scene.remove(powerups3D[i]);
+                            powerups3D.splice(i, 1);
+                        }
+                    }
+                });
+                return !collected;
+            });
+            
+            if (Math.random() < 0.005 && powerups.length < 3) spawnPowerup();
+            
+            swapTimer++;
+            const swapInterval = Math.max(60, 180 - chaosLevel);
+            if (swapTimer > swapInterval) {
+                swapTimer = 0;
+                if (Math.random() < 0.3 + chaosLevel / 300) swapTargets();
+            }
+            
+            updateParticles();
+            
+            gameTime -= 1 / 60;
+            document.getElementById('timer').textContent = Math.ceil(gameTime);
+            
+            if (gameTime <= 0) endGame();
+        }
+        
+        function render() {
+            // Update 3D player positions
+            players.forEach(function(p, i) {
+                if (players3D[i]) updatePlayer3D(p, players3D[i]);
+            });
+            
+            // Update 3D obstacles
+            obstacles.forEach(function(o, i) {
+                if (obstacles3D[i]) updateObstacle3D(o, obstacles3D[i]);
+            });
+            
+            // Update 3D powerups
+            powerups.forEach(function(p, i) {
+                if (powerups3D[i]) updatePowerup3D(p, powerups3D[i]);
+            });
+            
+            // Camera shake
+            if (screenShake > 0) {
+                camera.position.x = (Math.random() - 0.5) * screenShake * 0.1;
+                camera.position.z = 30 + (Math.random() - 0.5) * screenShake * 0.1;
+                screenShake *= 0.9;
+                if (screenShake < 0.5) {
+                    screenShake = 0;
+                    camera.position.x = 0;
+                    camera.position.z = 30;
+                }
+            }
+            
+            // Update chaos meter
+            chaosLevel = Math.max(0, chaosLevel - 0.1);
+            document.getElementById('chaosFill').style.width = chaosLevel + '%';
+            
+            // Pulse spotlight intensity based on chaos
+            spotLights.forEach(function(spot, i) {
+                spot.intensity = 1.5 + (chaosLevel / 100) * 1.5 + Math.sin(Date.now() * 0.01 + i) * 0.2;
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function startGame() {
+            initAudio();
+            initGame();
+            gameRunning = true;
+            document.getElementById('menu').classList.add('hidden');
+            document.getElementById('winner').classList.remove('show');
+        }
+        
+        function endGame() {
+            gameRunning = false;
+            playSound('win', 0);
+            
+            const winner = players.reduce(function(a, b) { return a.score > b.score ? a : b; });
+            document.getElementById('winnerText').textContent = 'P' + (winner.id + 1) + ' (' + winner.name + ') wins with ' + winner.score + ' points!';
+            document.getElementById('winner').classList.add('show');
+        }
+        
+        // UI Event Listeners
+        document.querySelectorAll('.player-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.player-btn').forEach(function(b) { b.classList.remove('selected'); });
+                btn.classList.add('selected');
+                playerCount = parseInt(btn.dataset.players);
+            });
+        });
+        
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('playAgain').addEventListener('click', startGame);
+        
+        // Initialize 3D and start
+        init3D();
+        gameLoop();
+    </script>
+</body>
+</html>
