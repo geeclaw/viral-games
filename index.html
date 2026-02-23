@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viral Games Collection</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+        .games {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .game-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            text-decoration: none;
+            color: #fff;
+            transition: transform 0.2s, background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .game-card:hover {
+            transform: scale(1.02);
+            background: rgba(255,255,255,0.2);
+        }
+        .icon {
+            font-size: 2rem;
+            width: 50px;
+            text-align: center;
+        }
+        .info h2 { font-size: 1.2rem; margin-bottom: 5px; }
+        .info p { font-size: 0.9rem; opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Viral Games</h1>
+    <div class="games">
+        <a href="viral-game/" class="game-card">
+            <div class="icon">🎯</div>
+            <div class="info">
+                <h2>TARGET SWAP</h2>
+                <p>3D Chaotic Party Game</p>
+            </div>
+        </a>
+        <a href="hyperrunner/" class="game-card">
+            <div class="icon">🧊</div>
+            <div class="info">
+                <h2>CUBE RUSH</h2>
+                <p>Hypercasual Runner</p>
+            </div>
+        </a>
+        <a href="blob-io/" class="game-card">
+            <div class="icon">🟢</div>
+            <div class="info">
+                <h2>BLOB CONQUEST</h2>
+                <p>IO Territory Game</p>
+            </div>
+        </a>
+        <a href="block-puzzle/" class="game-card">
+            <div class="icon">🧩</div>
+            <div class="info">
+                <h2>BLOCK BLAST</h2>
+                <p>Block Puzzle</p>
+            </div>
+        </a>
+        <a href="clicker-quest/" class="game-card">
+            <div class="icon">👑</div>
+            <div class="info">
+                <h2>CLICK EMPIRE</h2>
+                <p>Clicker/Idle Game</p>
+            </div>
+        </a>
+    </div>
+</body>
+</html>
